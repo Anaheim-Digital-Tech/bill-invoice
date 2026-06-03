@@ -342,12 +342,23 @@ export function PrintView({ doc }: Props) {
                     </td>
                     <td style={{ border: BORDER, padding: '4px 8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={COMPANY.bank.logoPath}
-                          alt={COMPANY.bank.bankName}
-                          style={{ height: '22px', width: 'auto', objectFit: 'contain', flexShrink: 0 }}
-                        />
+                        <div style={{
+                          backgroundColor: '#138f2d',
+                          borderRadius: '4px',
+                          width: '28px',
+                          height: '28px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={COMPANY.bank.logoPath}
+                            alt={COMPANY.bank.bankName}
+                            style={{ height: '20px', width: '20px', objectFit: 'contain' }}
+                          />
+                        </div>
                         <span>{COMPANY.bank.bankName}</span>
                       </div>
                     </td>

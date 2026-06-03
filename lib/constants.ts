@@ -15,7 +15,7 @@ export const COMPANY = {
     accountName: 'บริษัท อนาไฮม์ ดิจิทัล เทค จำกัด',
     accountNumber: '213-8-28190-7',
     accountType: 'ออมทรัพย์',
-    logoPath: '/banks-logo/th/kbank.svg',
+    logoPath: '/kbank.svg',
   },
 } as const;
 
