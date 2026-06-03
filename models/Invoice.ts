@@ -32,6 +32,8 @@ const InvoiceSchema = new Schema(
     discountPercent: { type: Number, default: 0 },
     taxMode: { type: String, enum: ['excluded', 'included', 'none'], default: 'excluded' },
     notes: String,
+    refDocId: String,
+    refDocNumber: String,
   },
   { timestamps: true }
 );
