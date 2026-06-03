@@ -3,6 +3,7 @@
 import type { InvoiceDoc } from '../lib/types';
 import { COMPANY, DOC_TYPE_LABELS } from '../lib/constants';
 import { calcTotals, formatDate, formatMoney } from '../lib/utils';
+import { bahtText } from '../lib/thaiText';
 
 interface Props {
   doc: InvoiceDoc;
@@ -515,6 +516,21 @@ export function PrintView({ doc }: Props) {
                       }}
                     >
                       {formatMoney(totals.total)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      colSpan={2}
+                      style={{
+                        border: BORDER,
+                        padding: '4px 8px',
+                        fontSize: '10pt',
+                        fontStyle: 'italic',
+                        color: '#333',
+                        textAlign: 'center',
+                      }}
+                    >
+                      ({bahtText(totals.total)})
                     </td>
                   </tr>
                 </tbody>
