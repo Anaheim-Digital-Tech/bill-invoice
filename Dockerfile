@@ -3,21 +3,19 @@ FROM node:20-alpine AS base
 # ── deps ──────────────────────────────────────────────
 FROM base AS deps
 WORKDIR /app
-RUN corepack enable
+COPY .yarn/releases ./.yarn/releases
 COPY package.json yarn.lock .yarnrc.yml ./
-RUN yarn install --frozen-lockfile
+RUN node .yarn/releases/yarn-4.15.0.cjs install --frozen-lockfile
 
 # ── builder ───────────────────────────────────────────
 FROM base AS builder
 WORKDIR /app
-RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# dummy values so build passes (real values injected at runtime)
 ENV MONGODB_URI=build_placeholder
 ENV APP_PASSWORD=build_placeholder
-RUN yarn build
+RUN node .yarn/releases/yarn-4.15.0.cjs build
 
 # ── runner ────────────────────────────────────────────
 FROM base AS runner
