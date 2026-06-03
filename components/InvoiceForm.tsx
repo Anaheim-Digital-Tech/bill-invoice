@@ -116,30 +116,35 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
 
   const handleSave = async () => {
     if (!validate()) return;
-    await saveDoc(buildDoc());
-    notifications.show({ title: 'บันทึกสำเร็จ', message: `${DOC_TYPE_LABELS[docType]} ${docNumber}`, color: 'green' });
-    router.push('/');
+    const ok = await saveDoc(buildDoc());
+    if (ok) {
+      notifications.show({ title: 'บันทึกสำเร็จ', message: `${DOC_TYPE_LABELS[docType]} ${docNumber}`, color: 'green' });
+      router.push('/');
+    } else {
+      notifications.show({ title: 'บันทึกไม่สำเร็จ', message: 'กรุณาลองใหม่', color: 'red' });
+    }
   };
 
   const handleSaveAndPrint = async () => {
     if (!validate()) return;
     const doc = buildDoc();
-    await saveDoc(doc);
-    router.push(`/invoices/${doc.id}/print`);
+    const ok = await saveDoc(doc);
+    if (ok) router.push(`/invoices/${doc.id}/print`);
+    else notifications.show({ title: 'บันทึกไม่สำเร็จ', message: 'กรุณาลองใหม่', color: 'red' });
   };
 
   return (
     <Stack gap="md">
       {/* Top actions */}
-      <Group justify="space-between" mb="xs">
+      <Group justify="space-between" mb="xs" wrap="wrap" gap="xs">
         <Button variant="subtle" leftSection={<IconArrowLeft size={16} />} onClick={() => router.push('/')}>
           กลับ
         </Button>
-        <Group>
-          <Button variant="outline" leftSection={<IconDeviceFloppy size={16} />} onClick={handleSave}>
+        <Group gap="xs" wrap="nowrap">
+          <Button variant="outline" leftSection={<IconDeviceFloppy size={16} />} onClick={handleSave} size="sm">
             บันทึก
           </Button>
-          <Button leftSection={<IconPrinter size={16} />} onClick={handleSaveAndPrint}>
+          <Button leftSection={<IconPrinter size={16} />} onClick={handleSaveAndPrint} size="sm">
             บันทึกและพิมพ์
           </Button>
         </Group>
@@ -306,10 +311,10 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
       </Grid>
 
       {/* Bottom actions */}
-      <Group justify="flex-end" mt="xs">
+      <Group justify="flex-end" mt="xs" wrap="wrap" gap="xs">
         <Button variant="subtle" onClick={() => router.push('/')}>ยกเลิก</Button>
-        <Button variant="outline" leftSection={<IconDeviceFloppy size={16} />} onClick={handleSave}>บันทึก</Button>
-        <Button leftSection={<IconPrinter size={16} />} onClick={handleSaveAndPrint}>บันทึกและพิมพ์</Button>
+        <Button variant="outline" leftSection={<IconDeviceFloppy size={16} />} onClick={handleSave} size="sm">บันทึก</Button>
+        <Button leftSection={<IconPrinter size={16} />} onClick={handleSaveAndPrint} size="sm">บันทึกและพิมพ์</Button>
       </Group>
     </Stack>
   );

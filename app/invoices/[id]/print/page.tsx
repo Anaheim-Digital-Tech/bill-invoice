@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { Button, Group, Text, Container } from '@mantine/core';
+import { Button, Group, Text, Container, Center, Loader } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import { IconPrinter, IconArrowLeft } from '@tabler/icons-react';
 import { PrintView } from '../../../../components/PrintView';
@@ -17,7 +17,7 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
     getDoc(id).then((d) => setDoc(d ?? null));
   }, [id]);
 
-  if (doc === undefined) return null;
+  if (doc === undefined) return <Center py={80}><Loader /></Center>;
 
   if (doc === null) {
     return (

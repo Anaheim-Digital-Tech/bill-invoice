@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { Container, Title, Text, Button } from '@mantine/core';
+import { Container, Title, Text, Button, Center, Loader } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import { InvoiceForm } from '../../../components/InvoiceForm';
 import { getDoc } from '../../../lib/store';
@@ -20,7 +20,7 @@ export default function EditInvoicePage({
     getDoc(id).then((d) => setDoc(d ?? null));
   }, [id]);
 
-  if (doc === undefined) return null;
+  if (doc === undefined) return <Center py={80}><Loader /></Center>;
 
   if (doc === null) {
     return (

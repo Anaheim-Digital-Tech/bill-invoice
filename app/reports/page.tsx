@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Container, Title, Paper, Text, Box,
-  SimpleGrid, Select, Table, Badge, Stack, Group,
+  SimpleGrid, Select, Table, Badge, Stack, Group, ScrollArea,
 } from '@mantine/core';
 import { IconFileInvoice, IconCurrencyBaht, IconClock } from '@tabler/icons-react';
 import type { InvoiceDoc } from '../../lib/types';
@@ -113,36 +113,36 @@ export default function ReportsPage() {
           {/* Bar chart (CSS-based) */}
           <Paper withBorder p="md" radius="md">
             <Title order={5} mb="md">ยอดรายเดือน — ปี {year}</Title>
-            <Box style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160, padding: '0 4px' }}>
-              {monthlySummary.map((m, i) => (
-                <Box key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <Text size="9px" c="dimmed" ta="center" style={{ whiteSpace: 'nowrap' }}>
-                    {m.total > 0 ? `฿${(m.total / 1000).toFixed(0)}K` : ''}
-                  </Text>
-                  <Box style={{ width: '100%', position: 'relative', height: 120, display: 'flex', alignItems: 'flex-end', flexDirection: 'column', gap: 1 }}>
-                    {/* Paid bar */}
-                    <Box style={{
-                      width: '100%',
-                      height: `${(m.paid / maxTotal) * 120}px`,
-                      backgroundColor: 'var(--mantine-color-green-5)',
-                      borderRadius: '3px 3px 0 0',
-                      minHeight: m.paid > 0 ? 2 : 0,
-                    }} />
-                    {/* Total bar */}
-                    <Box style={{
-                      width: '100%',
-                      height: `${((m.total - m.paid) / maxTotal) * 120}px`,
-                      backgroundColor: 'var(--mantine-color-blue-3)',
-                      minHeight: (m.total - m.paid) > 0 ? 2 : 0,
-                    }} />
+            <ScrollArea>
+              <Box style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180, minWidth: 480, padding: '0 4px' }}>
+                {monthlySummary.map((m, i) => (
+                  <Box key={i} style={{ flex: 1, minWidth: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <Text size="10px" c="dimmed" ta="center" style={{ whiteSpace: 'nowrap' }}>
+                      {m.total > 0 ? `฿${(m.total / 1000).toFixed(0)}K` : ''}
+                    </Text>
+                    <Box style={{ width: '100%', position: 'relative', height: 140, display: 'flex', alignItems: 'flex-end', flexDirection: 'column', gap: 1 }}>
+                      <Box style={{
+                        width: '100%',
+                        height: `${(m.paid / maxTotal) * 140}px`,
+                        backgroundColor: 'var(--mantine-color-green-5)',
+                        borderRadius: '3px 3px 0 0',
+                        minHeight: m.paid > 0 ? 2 : 0,
+                      }} />
+                      <Box style={{
+                        width: '100%',
+                        height: `${((m.total - m.paid) / maxTotal) * 140}px`,
+                        backgroundColor: 'var(--mantine-color-orange-3)',
+                        minHeight: (m.total - m.paid) > 0 ? 2 : 0,
+                      }} />
+                    </Box>
+                    <Text size="10px" c="dimmed" ta="center">{m.name.slice(0, 3)}</Text>
                   </Box>
-                  <Text size="9px" c="dimmed" ta="center">{m.name.slice(0, 3)}</Text>
-                </Box>
-              ))}
-            </Box>
+                ))}
+              </Box>
+            </ScrollArea>
             <Group gap="md" mt="xs">
               <Group gap={4}><Box style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: 'var(--mantine-color-green-5)' }} /><Text size="xs">ชำระแล้ว</Text></Group>
-              <Group gap={4}><Box style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: 'var(--mantine-color-blue-3)' }} /><Text size="xs">รอชำระ</Text></Group>
+              <Group gap={4}><Box style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: 'var(--mantine-color-orange-3)' }} /><Text size="xs">ยังไม่ชำระ</Text></Group>
             </Group>
           </Paper>
 

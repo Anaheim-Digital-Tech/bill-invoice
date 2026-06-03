@@ -12,6 +12,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/logo') ||
+    pathname.startsWith('/kbank') ||
     pathname.startsWith('/banks-logo') ||
     pathname.startsWith('/api/auth')
   ) {
@@ -19,7 +20,14 @@ export function middleware(request: NextRequest) {
   }
 
   const session = request.cookies.get('adt-session');
-  if (!session || session.value !== 'authenticated') {
+  const authenticated = session?.value === 'authenticated';
+
+  if (!authenticated) {
+    // API routes → 401 JSON (ไม่ redirect เพื่อป้องกัน SyntaxError ใน fetch)
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // Page routes → redirect ไป signin
     return NextResponse.redirect(new URL('/signin', request.url));
   }
 
