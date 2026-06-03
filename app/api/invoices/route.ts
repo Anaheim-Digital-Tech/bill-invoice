@@ -4,6 +4,14 @@ import { InvoiceModel } from '../../../models/Invoice';
 
 export async function GET() {
   await connectDB();
+
+  // Auto-mark overdue: sent docs ที่ dueDate < วันนี้
+  const today = new Date().toISOString().split('T')[0];
+  await InvoiceModel.updateMany(
+    { status: 'sent', dueDate: { $lt: today } },
+    { $set: { status: 'overdue' } }
+  );
+
   const docs = await InvoiceModel.find().sort({ createdAt: -1 }).lean();
   return NextResponse.json(docs);
 }

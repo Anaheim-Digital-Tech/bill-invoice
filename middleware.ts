@@ -20,7 +20,8 @@ export function middleware(request: NextRequest) {
   }
 
   const session = request.cookies.get('adt-session');
-  const authenticated = session?.value === 'authenticated';
+  const SESSION_SECRET = process.env.SESSION_SECRET ?? 'insecure-default-change-me';
+  const authenticated = !!session?.value && session.value === SESSION_SECRET;
 
   if (!authenticated) {
     // API routes → 401 JSON (ไม่ redirect เพื่อป้องกัน SyntaxError ใน fetch)
