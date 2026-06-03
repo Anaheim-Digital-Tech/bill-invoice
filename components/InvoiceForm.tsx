@@ -3,50 +3,22 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Stack,
-  Grid,
-  TextInput,
-  Textarea,
-  Select,
-  NumberInput,
-  Button,
-  Group,
-  Table,
-  ActionIcon,
-  Text,
-  Divider,
-  Paper,
-  Title,
-  SimpleGrid,
-  Box,
-  Modal,
-  ScrollArea,
-  UnstyledButton,
-  Badge,
-  Tooltip,
+  Stack, Grid, TextInput, Textarea, Select, NumberInput,
+  Button, Group, Table, ActionIcon, Text, Divider, Paper,
+  Title, SimpleGrid, Box, Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
-  IconPlus,
-  IconTrash,
-  IconDeviceFloppy,
-  IconPrinter,
-  IconArrowLeft,
-  IconAddressBook,
-  IconUserPlus,
-  IconX,
+  IconPlus, IconTrash, IconDeviceFloppy, IconPrinter,
+  IconArrowLeft, IconAddressBook, IconUserPlus,
 } from '@tabler/icons-react';
 import type { Contact } from '../lib/contacts';
-import { getAllContacts, saveContact, deleteContact } from '../lib/contacts';
-import { uid as genUid } from '../lib/utils';
+import { getAllContacts, saveContact } from '../lib/contacts';
 import type { InvoiceDoc, LineItem, DocType, TaxMode, DocStatus } from '../lib/types';
-import {
-  DOC_TYPE_LABELS,
-  DOC_STATUS_LABELS,
-  TAX_MODE_LABELS,
-} from '../lib/constants';
+import { DOC_TYPE_LABELS, DOC_STATUS_LABELS, TAX_MODE_LABELS } from '../lib/constants';
 import { saveDoc, generateDocNumber } from '../lib/store';
 import { calcTotals, formatMoney, uid, todayISO, addDaysISO } from '../lib/utils';
+import { ContactPickerModal } from './ContactPickerModal';
 
 interface Props {
   initial?: InvoiceDoc;
@@ -64,28 +36,47 @@ const newItem = (): LineItem => ({
 export function InvoiceForm({ initial, isNew = false }: Props) {
   const router = useRouter();
 
+  // Document metadata
   const [docType, setDocType] = useState<DocType>(initial?.docType ?? 'invoice');
   const [docNumber, setDocNumber] = useState(initial?.docNumber ?? '');
   const [issueDate, setIssueDate] = useState(initial?.issueDate ?? todayISO());
-  const [dueDate, setDueDate] = useState(
-    initial?.dueDate ?? addDaysISO(todayISO(), 30)
-  );
+  const [dueDate, setDueDate] = useState(initial?.dueDate ?? addDaysISO(todayISO(), 30));
   const [status, setStatus] = useState<DocStatus>(initial?.status ?? 'draft');
 
+  // Customer info
   const [customerName, setCustomerName] = useState(initial?.customerName ?? '');
   const [customerAddress, setCustomerAddress] = useState(initial?.customerAddress ?? '');
   const [customerTaxId, setCustomerTaxId] = useState(initial?.customerTaxId ?? '');
   const [customerPhone, setCustomerPhone] = useState(initial?.customerPhone ?? '');
   const [customerEmail, setCustomerEmail] = useState(initial?.customerEmail ?? '');
 
+  // Contact picker
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
 
   useEffect(() => {
-    if (contactPickerOpen) {
-      getAllContacts().then(setContacts);
-    }
+    if (contactPickerOpen) getAllContacts().then(setContacts);
   }, [contactPickerOpen]);
+
+  useEffect(() => {
+    if (isNew) generateDocNumber(docType).then(setDocNumber);
+  }, [docType, isNew]);
+
+  // Line items
+  const [items, setItems] = useState<LineItem[]>(initial?.items ?? [newItem()]);
+  const [discountPercent, setDiscountPercent] = useState(initial?.discountPercent ?? 0);
+  const [taxMode, setTaxMode] = useState<TaxMode>(initial?.taxMode ?? 'excluded');
+  const [notes, setNotes] = useState(initial?.notes ?? '');
+
+  const addItem = useCallback(() => setItems((p) => [...p, newItem()]), []);
+  const removeItem = useCallback((id: string) => setItems((p) => p.filter((i) => i.id !== id)), []);
+  const updateItem = useCallback(
+    (id: string, field: keyof LineItem, value: string | number) =>
+      setItems((p) => p.map((i) => (i.id === id ? { ...i, [field]: value } : i))),
+    []
+  );
+
+  const totals = calcTotals(items, discountPercent, taxMode);
 
   const applyContact = (c: Contact) => {
     setCustomerName(c.name);
@@ -102,85 +93,31 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
       notifications.show({ title: 'กรุณาระบุชื่อก่อน', message: '', color: 'orange' });
       return;
     }
-    const c: Contact = {
-      id: genUid(),
-      name: customerName,
-      address: customerAddress,
-      taxId: customerTaxId,
-      phone: customerPhone,
-      email: customerEmail,
-    };
-    await saveContact(c);
+    await saveContact({ id: uid(), name: customerName, address: customerAddress, taxId: customerTaxId, phone: customerPhone, email: customerEmail });
     const updated = await getAllContacts();
     setContacts(updated);
     notifications.show({ title: 'บันทึกลูกค้าแล้ว', message: customerName, color: 'green' });
   };
 
-  const [items, setItems] = useState<LineItem[]>(initial?.items ?? [newItem()]);
-  const [discountPercent, setDiscountPercent] = useState(initial?.discountPercent ?? 0);
-  const [taxMode, setTaxMode] = useState<TaxMode>(initial?.taxMode ?? 'excluded');
-  const [notes, setNotes] = useState(initial?.notes ?? '');
-
-  useEffect(() => {
-    if (isNew) {
-      generateDocNumber(docType).then(setDocNumber);
-    }
-  }, [docType, isNew]);
-
-  const addItem = useCallback(() => setItems((p) => [...p, newItem()]), []);
-  const removeItem = useCallback(
-    (id: string) => setItems((p) => p.filter((i) => i.id !== id)),
-    []
-  );
-  const updateItem = useCallback(
-    (id: string, field: keyof LineItem, value: string | number) =>
-      setItems((p) => p.map((i) => (i.id === id ? { ...i, [field]: value } : i))),
-    []
-  );
-
-  const totals = calcTotals(items, discountPercent, taxMode);
-
   const buildDoc = (): InvoiceDoc => ({
     id: initial?.id ?? uid(),
-    docNumber,
-    docType,
-    issueDate,
-    dueDate,
-    status,
-    customerName,
-    customerAddress,
-    customerTaxId,
-    customerPhone,
-    customerEmail,
-    items,
-    discountPercent,
-    taxMode,
-    notes,
+    docNumber, docType, issueDate, dueDate, status,
+    customerName, customerAddress, customerTaxId, customerPhone, customerEmail,
+    items, discountPercent, taxMode, notes,
     createdAt: initial?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
 
   const validate = () => {
-    if (!docNumber.trim()) {
-      notifications.show({ title: 'กรุณาระบุเลขที่เอกสาร', message: '', color: 'red' });
-      return false;
-    }
-    if (!customerName.trim()) {
-      notifications.show({ title: 'กรุณาระบุชื่อลูกค้า', message: '', color: 'red' });
-      return false;
-    }
+    if (!docNumber.trim()) { notifications.show({ title: 'กรุณาระบุเลขที่เอกสาร', message: '', color: 'red' }); return false; }
+    if (!customerName.trim()) { notifications.show({ title: 'กรุณาระบุชื่อลูกค้า', message: '', color: 'red' }); return false; }
     return true;
   };
 
   const handleSave = async () => {
     if (!validate()) return;
-    const doc = buildDoc();
-    await saveDoc(doc);
-    notifications.show({
-      title: 'บันทึกสำเร็จ',
-      message: `${DOC_TYPE_LABELS[docType]} ${docNumber}`,
-      color: 'green',
-    });
+    await saveDoc(buildDoc());
+    notifications.show({ title: 'บันทึกสำเร็จ', message: `${DOC_TYPE_LABELS[docType]} ${docNumber}`, color: 'green' });
     router.push('/');
   };
 
@@ -191,33 +128,22 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
     router.push(`/invoices/${doc.id}/print`);
   };
 
-  const topActions = (
-    <Group justify="space-between" mb="xs">
-      <Button
-        variant="subtle"
-        leftSection={<IconArrowLeft size={16} />}
-        onClick={() => router.push('/')}
-      >
-        กลับ
-      </Button>
-      <Group>
-        <Button
-          variant="outline"
-          leftSection={<IconDeviceFloppy size={16} />}
-          onClick={handleSave}
-        >
-          บันทึก
-        </Button>
-        <Button leftSection={<IconPrinter size={16} />} onClick={handleSaveAndPrint}>
-          บันทึกและพิมพ์
-        </Button>
-      </Group>
-    </Group>
-  );
-
   return (
     <Stack gap="md">
-      {topActions}
+      {/* Top actions */}
+      <Group justify="space-between" mb="xs">
+        <Button variant="subtle" leftSection={<IconArrowLeft size={16} />} onClick={() => router.push('/')}>
+          กลับ
+        </Button>
+        <Group>
+          <Button variant="outline" leftSection={<IconDeviceFloppy size={16} />} onClick={handleSave}>
+            บันทึก
+          </Button>
+          <Button leftSection={<IconPrinter size={16} />} onClick={handleSaveAndPrint}>
+            บันทึกและพิมพ์
+          </Button>
+        </Group>
+      </Group>
 
       {/* Document Info */}
       <Paper withBorder p="md" radius="md">
@@ -229,104 +155,26 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
             value={docType}
             onChange={(v) => v && setDocType(v as DocType)}
           />
-          <TextInput
-            label="เลขที่เอกสาร"
-            value={docNumber}
-            onChange={(e) => setDocNumber(e.target.value)}
-            required
-          />
+          <TextInput label="เลขที่เอกสาร" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} required />
           <Select
             label="สถานะ"
             data={Object.entries(DOC_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))}
             value={status}
             onChange={(v) => v && setStatus(v as DocStatus)}
           />
-          <TextInput
-            label="วันที่ออก"
-            type="date"
-            value={issueDate}
-            onChange={(e) => setIssueDate(e.target.value)}
-          />
-          <TextInput
-            label="วันครบกำหนด"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
+          <TextInput label="วันที่ออก" type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
+          <TextInput label="วันครบกำหนด" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </SimpleGrid>
       </Paper>
 
       {/* Contact Picker Modal */}
-      <Modal
+      <ContactPickerModal
         opened={contactPickerOpen}
         onClose={() => setContactPickerOpen(false)}
-        title="เลือกลูกค้า / ผู้รับบิล"
-        size="md"
-      >
-        <ScrollArea h={360}>
-          <Stack gap="xs">
-            {contacts.length === 0 && (
-              <Text size="sm" c="dimmed" ta="center" py="lg">
-                ยังไม่มีรายชื่อที่บันทึกไว้
-              </Text>
-            )}
-            {contacts.map((c) => (
-              <UnstyledButton
-                key={c.id}
-                onClick={() => applyContact(c)}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  border: '1px solid var(--mantine-color-gray-3)',
-                  display: 'block',
-                  width: '100%',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLElement).style.background =
-                    'var(--mantine-color-blue-0)')
-                }
-                onMouseLeave={(e) =>
-                  ((e.currentTarget as HTMLElement).style.background = '')
-                }
-              >
-                <Group justify="space-between" wrap="nowrap">
-                  <Box style={{ flex: 1, minWidth: 0 }}>
-                    <Text fw={600} size="sm" truncate>
-                      {c.name}
-                    </Text>
-                    {c.taxId && (
-                      <Text size="xs" c="dimmed">
-                        เลขภาษี: {c.taxId}
-                      </Text>
-                    )}
-                    {c.phone && (
-                      <Text size="xs" c="dimmed">
-                        โทร: {c.phone}
-                      </Text>
-                    )}
-                  </Box>
-                  <Group gap={4}>
-                    <ActionIcon
-                      size="xs"
-                      color="red"
-                      variant="subtle"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        await deleteContact(c.id);
-                        const updated = await getAllContacts();
-                        setContacts(updated);
-                      }}
-                    >
-                      <IconX size={12} />
-                    </ActionIcon>
-                  </Group>
-                </Group>
-              </UnstyledButton>
-            ))}
-          </Stack>
-        </ScrollArea>
-      </Modal>
+        onSelect={applyContact}
+        contacts={contacts}
+        onContactsChange={setContacts}
+      />
 
       {/* Customer Info */}
       <Paper withBorder p="md" radius="md">
@@ -334,55 +182,22 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
           <Title order={5}>ข้อมูลลูกค้า / ผู้รับบิล</Title>
           <Group gap="xs">
             <Tooltip label="บันทึกลูกค้าปัจจุบัน">
-              <Button
-                size="xs"
-                variant="light"
-                color="green"
-                leftSection={<IconUserPlus size={14} />}
-                onClick={saveCurrentAsContact}
-              >
+              <Button size="xs" variant="light" color="green" leftSection={<IconUserPlus size={14} />} onClick={saveCurrentAsContact}>
                 บันทึก
               </Button>
             </Tooltip>
-            <Button
-              size="xs"
-              variant="light"
-              leftSection={<IconAddressBook size={14} />}
-              onClick={() => setContactPickerOpen(true)}
-            >
+            <Button size="xs" variant="light" leftSection={<IconAddressBook size={14} />} onClick={() => setContactPickerOpen(true)}>
               เลือกลูกค้า
             </Button>
           </Group>
         </Group>
         <Stack gap="sm">
-          <TextInput
-            label="ชื่อลูกค้า / บริษัท"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            required
-          />
-          <Textarea
-            label="ที่อยู่"
-            value={customerAddress}
-            onChange={(e) => setCustomerAddress(e.target.value)}
-            rows={3}
-          />
+          <TextInput label="ชื่อลูกค้า / บริษัท" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
+          <Textarea label="ที่อยู่" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} rows={3} />
           <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
-            <TextInput
-              label="เลขผู้เสียภาษี"
-              value={customerTaxId}
-              onChange={(e) => setCustomerTaxId(e.target.value)}
-            />
-            <TextInput
-              label="เบอร์โทรศัพท์"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-            />
-            <TextInput
-              label="อีเมล"
-              value={customerEmail}
-              onChange={(e) => setCustomerEmail(e.target.value)}
-            />
+            <TextInput label="เลขผู้เสียภาษี" value={customerTaxId} onChange={(e) => setCustomerTaxId(e.target.value)} />
+            <TextInput label="เบอร์โทรศัพท์" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+            <TextInput label="อีเมล" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
           </SimpleGrid>
         </Stack>
       </Paper>
@@ -391,12 +206,7 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
       <Paper withBorder p="md" radius="md">
         <Group justify="space-between" mb="md">
           <Title order={5}>รายการสินค้า / บริการ</Title>
-          <Button
-            size="xs"
-            variant="light"
-            leftSection={<IconPlus size={14} />}
-            onClick={addItem}
-          >
+          <Button size="xs" variant="light" leftSection={<IconPlus size={14} />} onClick={addItem}>
             เพิ่มรายการ
           </Button>
         </Group>
@@ -416,60 +226,22 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
             <Table.Tbody>
               {items.map((item, idx) => (
                 <Table.Tr key={item.id}>
+                  <Table.Td><Text size="sm" c="dimmed">{idx + 1}</Text></Table.Td>
                   <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {idx + 1}
-                    </Text>
+                    <TextInput size="xs" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} placeholder="ระบุรายการ..." />
                   </Table.Td>
                   <Table.Td>
-                    <TextInput
-                      size="xs"
-                      value={item.description}
-                      onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                      placeholder="ระบุรายการ..."
-                    />
+                    <NumberInput size="xs" value={item.qty} onChange={(v) => updateItem(item.id, 'qty', Number(v) || 0)} min={0} decimalScale={2} hideControls />
                   </Table.Td>
                   <Table.Td>
-                    <NumberInput
-                      size="xs"
-                      value={item.qty}
-                      onChange={(v) => updateItem(item.id, 'qty', Number(v) || 0)}
-                      min={0}
-                      decimalScale={2}
-                      hideControls
-                    />
+                    <TextInput size="xs" value={item.unit} onChange={(e) => updateItem(item.id, 'unit', e.target.value)} />
                   </Table.Td>
                   <Table.Td>
-                    <TextInput
-                      size="xs"
-                      value={item.unit}
-                      onChange={(e) => updateItem(item.id, 'unit', e.target.value)}
-                    />
+                    <NumberInput size="xs" value={item.unitPrice} onChange={(v) => updateItem(item.id, 'unitPrice', Number(v) || 0)} min={0} decimalScale={2} thousandSeparator="," hideControls />
                   </Table.Td>
+                  <Table.Td ta="right"><Text size="sm" fw={500}>{formatMoney(item.qty * item.unitPrice)}</Text></Table.Td>
                   <Table.Td>
-                    <NumberInput
-                      size="xs"
-                      value={item.unitPrice}
-                      onChange={(v) => updateItem(item.id, 'unitPrice', Number(v) || 0)}
-                      min={0}
-                      decimalScale={2}
-                      thousandSeparator=","
-                      hideControls
-                    />
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    <Text size="sm" fw={500}>
-                      {formatMoney(item.qty * item.unitPrice)}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <ActionIcon
-                      color="red"
-                      variant="subtle"
-                      size="sm"
-                      onClick={() => removeItem(item.id)}
-                      disabled={items.length === 1}
-                    >
+                    <ActionIcon color="red" variant="subtle" size="sm" onClick={() => removeItem(item.id)} disabled={items.length === 1}>
                       <IconTrash size={14} />
                     </ActionIcon>
                   </Table.Td>
@@ -480,7 +252,7 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
         </Box>
       </Paper>
 
-      {/* Summary + Tax/Discount */}
+      {/* Tax/Discount + Summary */}
       <Grid>
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Paper withBorder p="md" radius="md" h="100%">
@@ -492,21 +264,8 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
                 value={taxMode}
                 onChange={(v) => v && setTaxMode(v as TaxMode)}
               />
-              <NumberInput
-                label="ส่วนลด (%)"
-                value={discountPercent}
-                onChange={(v) => setDiscountPercent(Number(v) || 0)}
-                min={0}
-                max={100}
-                decimalScale={2}
-              />
-              <Textarea
-                label="หมายเหตุ"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder="เงื่อนไขการชำระเงิน, หมายเหตุเพิ่มเติม..."
-              />
+              <NumberInput label="ส่วนลด (%)" value={discountPercent} onChange={(v) => setDiscountPercent(Number(v) || 0)} min={0} max={100} decimalScale={2} />
+              <Textarea label="หมายเหตุ" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="เงื่อนไขการชำระเงิน, หมายเหตุเพิ่มเติม..." />
             </Stack>
           </Paper>
         </Grid.Col>
@@ -520,12 +279,8 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
               </Group>
               {discountPercent > 0 && (
                 <Group justify="space-between">
-                  <Text size="sm" c="dimmed">
-                    ส่วนลด ({discountPercent}%)
-                  </Text>
-                  <Text size="sm" c="red">
-                    -{formatMoney(totals.discount)} บาท
-                  </Text>
+                  <Text size="sm" c="dimmed">ส่วนลด ({discountPercent}%)</Text>
+                  <Text size="sm" c="red">-{formatMoney(totals.discount)} บาท</Text>
                 </Group>
               )}
               {taxMode !== 'none' && (
@@ -543,29 +298,18 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
               <Divider my={4} />
               <Group justify="space-between">
                 <Text fw={700} size="md">ยอดสุทธิ</Text>
-                <Text fw={700} size="lg" c="blue">
-                  {formatMoney(totals.total)} บาท
-                </Text>
+                <Text fw={700} size="lg" c="blue">{formatMoney(totals.total)} บาท</Text>
               </Group>
             </Stack>
           </Paper>
         </Grid.Col>
       </Grid>
 
+      {/* Bottom actions */}
       <Group justify="flex-end" mt="xs">
-        <Button variant="subtle" onClick={() => router.push('/')}>
-          ยกเลิก
-        </Button>
-        <Button
-          variant="outline"
-          leftSection={<IconDeviceFloppy size={16} />}
-          onClick={handleSave}
-        >
-          บันทึก
-        </Button>
-        <Button leftSection={<IconPrinter size={16} />} onClick={handleSaveAndPrint}>
-          บันทึกและพิมพ์
-        </Button>
+        <Button variant="subtle" onClick={() => router.push('/')}>ยกเลิก</Button>
+        <Button variant="outline" leftSection={<IconDeviceFloppy size={16} />} onClick={handleSave}>บันทึก</Button>
+        <Button leftSection={<IconPrinter size={16} />} onClick={handleSaveAndPrint}>บันทึกและพิมพ์</Button>
       </Group>
     </Stack>
   );

@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import {
-  Container, Group, Title, Button, Paper, Text, Box,
-  SimpleGrid, Select, Table, Badge, Stack,
+  Container, Title, Paper, Text, Box,
+  SimpleGrid, Select, Table, Badge, Stack, Group,
 } from '@mantine/core';
-import { IconArrowLeft, IconFileInvoice, IconCurrencyBaht, IconClock, IconX } from '@tabler/icons-react';
+import { IconFileInvoice, IconCurrencyBaht, IconClock } from '@tabler/icons-react';
 import type { InvoiceDoc } from '../../lib/types';
 import { getAllDocs } from '../../lib/store';
-import { DOC_STATUS_LABELS, DOC_STATUS_COLORS, COMPANY } from '../../lib/constants';
+import { DOC_STATUS_LABELS, DOC_STATUS_COLORS } from '../../lib/constants';
 import { calcTotals, formatMoney, formatDate } from '../../lib/utils';
+import { AppHeader } from '../../components/AppHeader';
 
 const MONTHS = [
   'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
@@ -18,7 +18,6 @@ const MONTHS = [
 ];
 
 export default function ReportsPage() {
-  const router = useRouter();
   const [docs, setDocs] = useState<InvoiceDoc[]>([]);
   const now = new Date();
   const [year, setYear] = useState(String(now.getFullYear()));
@@ -57,20 +56,7 @@ export default function ReportsPage() {
 
   return (
     <Box>
-      <Box style={{ position: 'sticky', top: 0, zIndex: 200, backgroundColor: '#1a1a2e', borderBottom: '1px solid rgba(255,255,255,0.1)' }} className="no-print">
-        <Container size="xl" py="sm">
-          <Group justify="space-between">
-            <Group gap="xs">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-dark.png" alt="logo" style={{ height: 40, objectFit: 'contain' }} />
-              <Text fw={700} size="sm" c="white">รายงานสรุปยอด</Text>
-            </Group>
-            <Button variant="subtle" color="gray.3" size="sm" leftSection={<IconArrowLeft size={16} />} onClick={() => router.push('/')}>
-              กลับ Dashboard
-            </Button>
-          </Group>
-        </Container>
-      </Box>
+      <AppHeader backTo="/" />
 
       <Container size="xl" py="lg">
         <Stack gap="lg">
