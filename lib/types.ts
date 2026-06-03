@@ -26,6 +26,8 @@ export interface InvoiceDoc {
   discountPercent: number;
   taxMode: TaxMode;
   notes: string;
+  refDocId?: string;
+  refDocNumber?: string;
   createdAt: string;
   updatedAt: string;
 }

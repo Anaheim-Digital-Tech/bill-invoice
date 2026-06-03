@@ -7,6 +7,7 @@ import { bahtText } from '../lib/thaiText';
 
 interface Props {
   doc: InvoiceDoc;
+  copy?: boolean;
 }
 
 const BORDER = '1px solid #333';
@@ -42,7 +43,7 @@ const td = (content: React.ReactNode, style?: React.CSSProperties): React.ReactN
   </td>
 );
 
-export function PrintView({ doc }: Props) {
+export function PrintView({ doc, copy = false }: Props) {
   const totals = calcTotals(doc.items, doc.discountPercent, doc.taxMode);
   const PAD_ROWS = Math.max(0, 5 - doc.items.length);
 
@@ -105,6 +106,7 @@ export function PrintView({ doc }: Props) {
                   textAlign: 'center',
                   padding: '4px 0',
                   marginBottom: '4px',
+                  position: 'relative',
                 }}
               >
                 <div
@@ -116,6 +118,22 @@ export function PrintView({ doc }: Props) {
                   }}
                 >
                   {DOC_TYPE_LABELS[doc.docType]}
+                </div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '3px',
+                    right: '6px',
+                    fontSize: '8pt',
+                    fontWeight: 700,
+                    color: copy ? '#888' : '#1a1a2e',
+                    border: copy ? '1px solid #aaa' : '1px solid #1a1a2e',
+                    padding: '1px 6px',
+                    borderRadius: '3px',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  {copy ? 'สำเนา' : 'ต้นฉบับ'}
                 </div>
               </div>
               {/* Doc number/date table */}
@@ -174,6 +192,23 @@ export function PrintView({ doc }: Props) {
                       {formatDate(doc.dueDate)}
                     </td>
                   </tr>
+                  {doc.refDocNumber && (
+                    <tr>
+                      <td
+                        style={{
+                          border: BORDER,
+                          padding: '4px 8px',
+                          backgroundColor: '#f5f5f5',
+                          fontWeight: 600,
+                        }}
+                      >
+                        อ้างอิง
+                      </td>
+                      <td style={{ border: BORDER, padding: '4px 8px', fontSize: '9.5pt', color: '#555' }}>
+                        {doc.refDocNumber}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </td>

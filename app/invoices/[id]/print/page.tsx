@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { Button, Group, Text, Container, Center, Loader } from '@mantine/core';
+import { Button, Group, Text, Container, Center, Loader, SegmentedControl } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import { IconPrinter, IconArrowLeft } from '@tabler/icons-react';
 import { PrintView } from '../../../../components/PrintView';
 import { getDoc } from '../../../../lib/store';
 import type { InvoiceDoc } from '../../../../lib/types';
 
+type PrintMode = 'original' | 'copy' | 'both';
+
 export default function PrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [doc, setDoc] = useState<InvoiceDoc | null | undefined>(undefined);
+  const [printMode, setPrintMode] = useState<PrintMode>('original');
 
   useEffect(() => {
     getDoc(id).then((d) => setDoc(d ?? null));
@@ -44,7 +47,7 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           padding: '8px 16px',
         }}
       >
-        <Group>
+        <Group wrap="wrap" gap="sm">
           <Button
             variant="subtle"
             size="sm"
@@ -53,6 +56,16 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           >
             กลับ
           </Button>
+          <SegmentedControl
+            size="sm"
+            value={printMode}
+            onChange={(v) => setPrintMode(v as PrintMode)}
+            data={[
+              { label: 'ต้นฉบับ', value: 'original' },
+              { label: 'สำเนา', value: 'copy' },
+              { label: 'ทั้งสอง (2 หน้า)', value: 'both' },
+            ]}
+          />
           <Button
             size="sm"
             leftSection={<IconPrinter size={16} />}
@@ -64,7 +77,15 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
       </div>
 
       {/* Print content */}
-      <PrintView doc={doc} />
+      {printMode === 'both' ? (
+        <>
+          <PrintView doc={doc} copy={false} />
+          <div style={{ pageBreakAfter: 'always', height: 0 }} />
+          <PrintView doc={doc} copy={true} />
+        </>
+      ) : (
+        <PrintView doc={doc} copy={printMode === 'copy'} />
+      )}
     </div>
   );
 }

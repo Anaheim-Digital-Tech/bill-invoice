@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import {
   Container, Group, Title, Button, Table, Badge, ActionIcon,
   Menu, Text, Stack, SimpleGrid, Paper, TextInput, Select, Box,
-  ScrollArea,
+  ScrollArea, Collapse, NumberInput,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
   IconDots, IconPrinter, IconEdit, IconTrash, IconSearch,
   IconFileInvoice, IconCurrencyBaht, IconClock, IconCopy, IconDownload,
+  IconChevronDown, IconChevronUp, IconArrowRight,
 } from '@tabler/icons-react';
-import type { InvoiceDoc, DocStatus } from '../lib/types';
+import type { InvoiceDoc, DocStatus, DocType } from '../lib/types';
 import { getAllDocs, deleteDoc, saveDoc } from '../lib/store';
 import {
   DOC_TYPE_LABELS, DOC_STATUS_LABELS, DOC_STATUS_COLORS, DOC_TYPE_PREFIX, COMPANY,
@@ -20,20 +22,37 @@ import {
 import { formatDate, formatMoney, calcTotals, uid, todayISO } from '../lib/utils';
 import { AppHeader } from '../components/AppHeader';
 
+const NEXT_DOC_TYPE: Partial<Record<DocType, DocType>> = {
+  quotation: 'invoice',
+  invoice: 'receipt',
+};
+
 export default function HomePage() {
   const router = useRouter();
   const [docs, setDocs] = useState<InvoiceDoc[]>([]);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [filterDocType, setFilterDocType] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [amountMin, setAmountMin] = useState<number | string>('');
+  const [amountMax, setAmountMax] = useState<number | string>('');
+  const [advancedOpen, { toggle: toggleAdvanced }] = useDisclosure(false);
 
   const reload = () => { getAllDocs().then(setDocs); };
   useEffect(() => { reload(); }, []);
 
   const filtered = docs.filter((d) => {
     const q = search.toLowerCase();
-    const matchSearch =
-      !q || d.docNumber.toLowerCase().includes(q) || d.customerName.toLowerCase().includes(q);
-    return matchSearch && (!filterStatus || d.status === filterStatus);
+    const { total } = calcTotals(d.items, d.discountPercent, d.taxMode);
+    const matchSearch = !q || d.docNumber.toLowerCase().includes(q) || d.customerName.toLowerCase().includes(q);
+    const matchStatus = !filterStatus || d.status === filterStatus;
+    const matchDocType = !filterDocType || d.docType === filterDocType;
+    const matchDateFrom = !dateFrom || d.issueDate >= dateFrom;
+    const matchDateTo = !dateTo || d.issueDate <= dateTo;
+    const matchAmountMin = amountMin === '' || total >= Number(amountMin);
+    const matchAmountMax = amountMax === '' || total <= Number(amountMax);
+    return matchSearch && matchStatus && matchDocType && matchDateFrom && matchDateTo && matchAmountMin && matchAmountMax;
   });
 
   const handleDelete = async (id: string) => {
@@ -64,6 +83,33 @@ export default function HomePage() {
     if (ok) {
       reload();
       notifications.show({ title: 'คัดลอกเอกสารแล้ว', message: newDoc.docNumber, color: 'blue' });
+    }
+  };
+
+  const handleConvert = async (doc: InvoiceDoc) => {
+    const nextType = NEXT_DOC_TYPE[doc.docType];
+    if (!nextType) return;
+    const now = new Date();
+    const prefix = DOC_TYPE_PREFIX[nextType];
+    const header = `${prefix}${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const count = docs.filter((d) => d.docNumber.startsWith(header)).length;
+    const newDoc: InvoiceDoc = {
+      ...doc,
+      id: uid(),
+      docType: nextType,
+      docNumber: `${header}${String(count + 1).padStart(3, '0')}`,
+      issueDate: todayISO(),
+      status: 'draft',
+      refDocId: doc.id,
+      refDocNumber: doc.docNumber,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const ok = await saveDoc(newDoc);
+    if (ok) {
+      reload();
+      router.push(`/invoices/${newDoc.id}`);
+      notifications.show({ title: 'สร้างเอกสารใหม่แล้ว', message: `${newDoc.docNumber} อ้างอิงจาก ${doc.docNumber}`, color: 'teal' });
     }
   };
 
@@ -131,15 +177,17 @@ export default function HomePage() {
           <Stack gap="xs">
             <Group justify="space-between" align="center">
               <Title order={4}>รายการเอกสารทั้งหมด</Title>
-              <Button
-                variant="light"
-                size="sm"
-                leftSection={<IconDownload size={16} />}
-                onClick={handleExportCSV}
-                visibleFrom="sm"
-              >
-                Export CSV
-              </Button>
+              <Group gap="xs">
+                <Button
+                  variant="light"
+                  size="sm"
+                  leftSection={<IconDownload size={16} />}
+                  onClick={handleExportCSV}
+                  visibleFrom="sm"
+                >
+                  Export CSV
+                </Button>
+              </Group>
             </Group>
             <Group gap="xs" wrap="wrap">
               <TextInput
@@ -157,8 +205,25 @@ export default function HomePage() {
                 data={Object.entries(DOC_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))}
                 value={filterStatus}
                 onChange={setFilterStatus}
+                style={{ flex: '0 0 150px' }}
+              />
+              <Select
+                placeholder="ประเภทเอกสาร"
+                clearable
+                size="sm"
+                data={Object.entries(DOC_TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))}
+                value={filterDocType}
+                onChange={setFilterDocType}
                 style={{ flex: '0 0 160px' }}
               />
+              <Button
+                variant="subtle"
+                size="sm"
+                rightSection={advancedOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+                onClick={toggleAdvanced}
+              >
+                ตัวกรองเพิ่มเติม
+              </Button>
               <Button
                 variant="light"
                 size="sm"
@@ -169,6 +234,62 @@ export default function HomePage() {
                 CSV
               </Button>
             </Group>
+            <Collapse expanded={advancedOpen}>
+              <Paper withBorder p="sm" radius="md">
+                <Group gap="xs" wrap="wrap">
+                  <TextInput
+                    label="วันที่ออก ตั้งแต่"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    size="sm"
+                    style={{ flex: '1 1 140px' }}
+                  />
+                  <TextInput
+                    label="วันที่ออก ถึง"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    size="sm"
+                    style={{ flex: '1 1 140px' }}
+                  />
+                  <NumberInput
+                    label="ยอดสุทธิ ขั้นต่ำ (฿)"
+                    value={amountMin}
+                    onChange={setAmountMin}
+                    min={0}
+                    thousandSeparator=","
+                    hideControls
+                    size="sm"
+                    style={{ flex: '1 1 130px' }}
+                  />
+                  <NumberInput
+                    label="ยอดสุทธิ สูงสุด (฿)"
+                    value={amountMax}
+                    onChange={setAmountMax}
+                    min={0}
+                    thousandSeparator=","
+                    hideControls
+                    size="sm"
+                    style={{ flex: '1 1 130px' }}
+                  />
+                  <Button
+                    variant="subtle"
+                    color="red"
+                    size="sm"
+                    style={{ alignSelf: 'flex-end' }}
+                    onClick={() => {
+                      setDateFrom(''); setDateTo('');
+                      setAmountMin(''); setAmountMax('');
+                      setFilterDocType(null); setFilterStatus(null);
+                      setSearch('');
+                    }}
+                  >
+                    ล้างทั้งหมด
+                  </Button>
+                </Group>
+              </Paper>
+            </Collapse>
           </Stack>
 
           {/* Invoice Table — horizontal scroll on mobile */}
@@ -242,6 +363,15 @@ export default function HomePage() {
                                 <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => router.push(`/invoices/${doc.id}`)}>แก้ไข</Menu.Item>
                                 <Menu.Item leftSection={<IconPrinter size={14} />} onClick={() => router.push(`/invoices/${doc.id}/print`)}>พิมพ์ / PDF</Menu.Item>
                                 <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => handleDuplicate(doc)}>คัดลอก</Menu.Item>
+                                {NEXT_DOC_TYPE[doc.docType] && (
+                                  <Menu.Item
+                                    leftSection={<IconArrowRight size={14} />}
+                                    color="teal"
+                                    onClick={() => handleConvert(doc)}
+                                  >
+                                    สร้าง {DOC_TYPE_LABELS[NEXT_DOC_TYPE[doc.docType]!]} จากนี้
+                                  </Menu.Item>
+                                )}
                                 <Menu.Divider />
                                 <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={() => handleDelete(doc.id)}>ลบ</Menu.Item>
                               </Menu.Dropdown>

@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import {
   Stack, Grid, TextInput, Textarea, Select, NumberInput,
   Button, Group, Table, ActionIcon, Text, Divider, Paper,
-  Title, SimpleGrid, Box, Tooltip,
+  Title, SimpleGrid, Box, Tooltip, Anchor,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
   IconPlus, IconTrash, IconDeviceFloppy, IconPrinter,
-  IconArrowLeft, IconAddressBook, IconUserPlus,
+  IconArrowLeft, IconAddressBook, IconUserPlus, IconLink,
 } from '@tabler/icons-react';
 import type { Contact } from '../lib/contacts';
 import { getAllContacts, saveContact } from '../lib/contacts';
@@ -149,6 +149,21 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
           </Button>
         </Group>
       </Group>
+
+      {/* Reference Doc */}
+      {initial?.refDocNumber && (
+        <Paper withBorder p="sm" radius="md" style={{ backgroundColor: 'var(--mantine-color-teal-0)', borderColor: 'var(--mantine-color-teal-3)' }}>
+          <Group gap="xs">
+            <IconLink size={16} color="var(--mantine-color-teal-7)" />
+            <Text size="sm">อ้างอิงจากเอกสาร: <strong>{initial.refDocNumber}</strong></Text>
+            {initial.refDocId && (
+              <Anchor size="sm" c="teal" onClick={() => router.push(`/invoices/${initial.refDocId}`)}>
+                ดูเอกสารต้นทาง →
+              </Anchor>
+            )}
+          </Group>
+        </Paper>
+      )}
 
       {/* Document Info */}
       <Paper withBorder p="md" radius="md">
