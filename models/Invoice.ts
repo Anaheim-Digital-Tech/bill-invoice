@@ -15,7 +15,7 @@ const InvoiceSchema = new Schema(
   {
     id: { type: String, required: true, unique: true },
     docNumber: { type: String, required: true },
-    docType: { type: String, enum: ['quotation', 'invoice', 'receipt'], default: 'invoice' },
+    docType: { type: String, enum: ['salesorder', 'quotation', 'invoice', 'receipt'], default: 'invoice' },
     issueDate: String,
     dueDate: String,
     status: {
@@ -32,6 +32,8 @@ const InvoiceSchema = new Schema(
     discountPercent: { type: Number, default: 0 },
     taxMode: { type: String, enum: ['excluded', 'included', 'none'], default: 'excluded' },
     notes: String,
+    paymentMethod: String,
+    paymentDate: String,
     refDocId: String,
     refDocNumber: String,
   },

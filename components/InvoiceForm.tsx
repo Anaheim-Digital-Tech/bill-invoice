@@ -15,7 +15,10 @@ import {
 import type { Contact } from '../lib/contacts';
 import { getAllContacts, saveContact } from '../lib/contacts';
 import type { InvoiceDoc, LineItem, DocType, TaxMode, DocStatus } from '../lib/types';
-import { DOC_TYPE_LABELS, DOC_STATUS_LABELS, TAX_MODE_LABELS } from '../lib/constants';
+import {
+  DOC_TYPE_LABELS, DOC_STATUS_LABELS, TAX_MODE_LABELS,
+  STATUS_BY_TYPE, DUE_DATE_LABEL, PAYMENT_METHODS,
+} from '../lib/constants';
 import { saveDoc, generateDocNumber } from '../lib/store';
 import { calcTotals, formatMoney, uid, todayISO, addDaysISO } from '../lib/utils';
 import { ContactPickerModal } from './ContactPickerModal';
@@ -62,6 +65,19 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
     if (isNew) generateDocNumber(docType).then(setDocNumber);
   }, [docType, isNew]);
 
+  const handleDocTypeChange = (v: string) => {
+    const next = v as DocType;
+    setDocType(next);
+    // ถ้าสถานะปัจจุบันไม่อยู่ในรายการที่อนุญาต ให้ reset
+    if (!STATUS_BY_TYPE[next].includes(status)) {
+      setStatus(next === 'receipt' ? 'paid' : 'draft');
+    }
+  };
+
+  // Receipt-specific fields
+  const [paymentMethod, setPaymentMethod] = useState(initial?.paymentMethod ?? 'transfer');
+  const [paymentDate, setPaymentDate] = useState(initial?.paymentDate ?? todayISO());
+
   // Line items
   const [items, setItems] = useState<LineItem[]>(initial?.items ?? [newItem()]);
   const [discountPercent, setDiscountPercent] = useState(initial?.discountPercent ?? 0);
@@ -101,9 +117,15 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
 
   const buildDoc = (): InvoiceDoc => ({
     id: initial?.id ?? uid(),
-    docNumber, docType, issueDate, dueDate, status,
+    docNumber, docType, issueDate,
+    dueDate: docType === 'receipt' ? paymentDate : dueDate,
+    status,
     customerName, customerAddress, customerTaxId, customerPhone, customerEmail,
     items, discountPercent, taxMode, notes,
+    paymentMethod: docType === 'receipt' ? paymentMethod : undefined,
+    paymentDate: docType === 'receipt' ? paymentDate : undefined,
+    refDocId: initial?.refDocId,
+    refDocNumber: initial?.refDocNumber,
     createdAt: initial?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
@@ -173,17 +195,45 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
             label="ประเภทเอกสาร"
             data={Object.entries(DOC_TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))}
             value={docType}
-            onChange={(v) => v && setDocType(v as DocType)}
+            onChange={(v) => v && handleDocTypeChange(v)}
           />
           <TextInput label="เลขที่เอกสาร" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} required />
           <Select
             label="สถานะ"
-            data={Object.entries(DOC_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))}
+            data={STATUS_BY_TYPE[docType].map((v) => ({ value: v, label: DOC_STATUS_LABELS[v] }))}
             value={status}
             onChange={(v) => v && setStatus(v as DocStatus)}
+            disabled={docType === 'receipt'}
           />
-          <TextInput label="วันที่ออก" type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
-          <TextInput label="วันครบกำหนด" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          <TextInput
+            label="วันที่ออก"
+            type="date"
+            value={issueDate}
+            onChange={(e) => setIssueDate(e.target.value)}
+          />
+          {docType === 'receipt' ? (
+            <>
+              <TextInput
+                label="วันที่รับชำระ"
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+              />
+              <Select
+                label="วิธีชำระเงิน"
+                data={PAYMENT_METHODS}
+                value={paymentMethod}
+                onChange={(v) => v && setPaymentMethod(v)}
+              />
+            </>
+          ) : (
+            <TextInput
+              label={DUE_DATE_LABEL[docType]}
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          )}
         </SimpleGrid>
       </Paper>
 

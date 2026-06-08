@@ -1,7 +1,7 @@
 'use client';
 
 import type { InvoiceDoc } from '../lib/types';
-import { COMPANY, DOC_TYPE_LABELS } from '../lib/constants';
+import { COMPANY, DOC_TYPE_LABELS, DUE_DATE_LABEL, PAYMENT_METHODS } from '../lib/constants';
 import { calcTotals, formatDate, formatMoney } from '../lib/utils';
 import { bahtText } from '../lib/thaiText';
 
@@ -186,10 +186,10 @@ export function PrintView({ doc, copy = false }: Props) {
                         fontWeight: 600,
                       }}
                     >
-                      ครบกำหนด
+                      {DUE_DATE_LABEL[doc.docType]}
                     </td>
                     <td style={{ border: BORDER, padding: '4px 8px' }}>
-                      {formatDate(doc.dueDate)}
+                      {formatDate(doc.paymentDate ?? doc.dueDate)}
                     </td>
                   </tr>
                   {doc.refDocNumber && (
@@ -443,6 +443,23 @@ export function PrintView({ doc, copy = false }: Props) {
                       {COMPANY.bank.accountType}
                     </td>
                   </tr>
+                  {doc.docType === 'receipt' && doc.paymentMethod && (
+                    <tr>
+                      <td
+                        style={{
+                          border: BORDER,
+                          padding: '4px 8px',
+                          backgroundColor: '#f5f5f5',
+                          fontWeight: 600,
+                        }}
+                      >
+                        วิธีชำระ
+                      </td>
+                      <td style={{ border: BORDER, padding: '4px 8px', fontWeight: 600, color: '#138f2d' }}>
+                        {PAYMENT_METHODS.find((m) => m.value === doc.paymentMethod)?.label ?? doc.paymentMethod}
+                      </td>
+                    </tr>
+                  )}
                   {doc.notes && (
                     <tr>
                       <td

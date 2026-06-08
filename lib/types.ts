@@ -1,4 +1,4 @@
-export type DocType = 'quotation' | 'invoice' | 'receipt';
+export type DocType = 'salesorder' | 'quotation' | 'invoice' | 'receipt';
 export type TaxMode = 'excluded' | 'included' | 'none';
 export type DocStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
@@ -26,6 +26,8 @@ export interface InvoiceDoc {
   discountPercent: number;
   taxMode: TaxMode;
   notes: string;
+  paymentMethod?: string;
+  paymentDate?: string;
   refDocId?: string;
   refDocNumber?: string;
   createdAt: string;

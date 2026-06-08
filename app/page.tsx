@@ -23,6 +23,7 @@ import { formatDate, formatMoney, calcTotals, uid, todayISO } from '../lib/utils
 import { AppHeader } from '../components/AppHeader';
 
 const NEXT_DOC_TYPE: Partial<Record<DocType, DocType>> = {
+  salesorder: 'invoice',
   quotation: 'invoice',
   invoice: 'receipt',
 };
