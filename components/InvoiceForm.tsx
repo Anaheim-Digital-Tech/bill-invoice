@@ -451,7 +451,7 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
           />
           {isEquipmentLoan && (
             <Text size="xs" c="dimmed" mt="xs">
-              บนกระดาษพิมพ์จะมีช่องเพิ่มเติม (เขียนมือ) และเงื่อนไขมาตรฐานท้ายเอกสาร
+              บนกระดาษพิมพ์มีแถวว่างใต้รายการสำหรับเขียนเพิ่มเติมด้วยมือ และเงื่อนไขมาตรฐานท้ายเอกสาร
             </Text>
           )}
           {initial?.isArchive && (

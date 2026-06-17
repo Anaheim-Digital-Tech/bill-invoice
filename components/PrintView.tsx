@@ -50,7 +50,7 @@ export function PrintView({ doc, copy = false }: Props) {
   const isEquipmentCheck = doc.docType === 'equipmentcheck';
   const isEquipmentLoan = doc.docType === 'equipmentloan';
   const isGoodsReceipt = doc.docType === 'goodsreceipt';
-  const PAD_ROWS_LOAN = isEquipmentLoan ? Math.max(0, 3 - doc.items.length) : PAD_ROWS;
+  const PAD_ROWS_LOAN = isEquipmentLoan ? Math.max(6, 10 - doc.items.length) : PAD_ROWS;
 
   const titleLabel = DOC_TYPE_LABELS[doc.docType];
   const titleFontSize = titleLabel.length > 28 ? '10.5pt' : titleLabel.length > 20 ? '12pt' : '16pt';
@@ -344,7 +344,7 @@ export function PrintView({ doc, copy = false }: Props) {
             </tr>
           ))}
           {Array.from({ length: isEquipmentLoan ? PAD_ROWS_LOAN : PAD_ROWS }).map((_, i) => (
-            <tr key={`pad-${i}`} style={{ height: '18px' }}>
+            <tr key={`pad-${i}`} style={{ height: isEquipmentLoan ? '7mm' : '18px' }}>
               {[...Array(
                 4 + (isEquipmentCheck || isEquipmentLoan ? 1 : 0) + (isEquipmentCheck ? 1 : 0) + (isOperational ? 0 : 2)
               )].map((__, j) => (
@@ -654,61 +654,30 @@ export function PrintView({ doc, copy = false }: Props) {
 
       {isEquipmentLoan && (
         <>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2mm', border: BORDER, fontSize: '9.5pt' }}>
-            <thead>
-              <tr>
-                <th
-                  colSpan={2}
-                  style={{
-                    border: BORDER,
-                    padding: '4px 8px',
-                    backgroundColor: '#1a1a2e',
-                    color: '#fff',
-                    fontWeight: 600,
-                    textAlign: 'left',
-                  }}
-                >
-                  เพิ่มเติม
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {['1.', '2.', '3.', '4.'].map((n) => (
-                <tr key={n}>
-                  <td style={{ border: BORDER, padding: '2px 8px', width: '6%', verticalAlign: 'bottom', color: '#666' }}>
-                    {n}
-                  </td>
-                  <td style={{ border: BORDER, padding: '0 8px', height: '7mm' }}>
-                    <div style={{ borderBottom: '1px dotted #999', height: '6.5mm' }} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2mm', border: BORDER, fontSize: '9pt' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2mm', border: BORDER, fontSize: '8pt' }}>
             <tbody>
               <tr>
-                <td style={{ border: BORDER, padding: '5px 10px', backgroundColor: '#f9f9f9' }}>
+                <td style={{ border: BORDER, padding: '4px 8px', backgroundColor: '#f9f9f9' }}>
                   ข้าพเจ้า <strong>{doc.handoverReceiverName || doc.customerName}</strong> ผู้รับมอบ และ{' '}
                   <strong>{doc.handoverSenderName || COMPANY.contacts[0].name}</strong> ผู้ส่งมอบในนาม {COMPANY.name}{' '}
-                  ได้ทำบันทึกข้อตกลงการยืม/ใช้งานอุปกรณ์ตามรายการข้างต้น รวมถึงรายการที่เขียนเพิ่มเติมด้วยลายมือ
+                  ได้ทำบันทึกข้อตกลงการยืม/ใช้งานอุปกรณ์ตามรายการข้างต้น (รวมที่เขียนเพิ่มเติมด้วยลายมือ)
                   โดยผู้รับมอบตกลงปฏิบัติตามเงื่อนไขด้านล่างนี้
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2mm', border: BORDER, fontSize: '8.5pt' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2mm', border: BORDER, fontSize: '7pt', lineHeight: 1.35 }}>
             <thead>
               <tr>
                 <th
                   style={{
                     border: BORDER,
-                    padding: '4px 8px',
+                    padding: '2px 8px',
                     backgroundColor: '#1a1a2e',
                     color: '#fff',
                     fontWeight: 600,
+                    fontSize: '7.5pt',
                     textAlign: 'left',
                   }}
                 >
@@ -719,14 +688,14 @@ export function PrintView({ doc, copy = false }: Props) {
             <tbody>
               {EQUIPMENT_LOAN_DEFAULT_TERMS.map((term, i) => (
                 <tr key={i}>
-                  <td style={{ border: BORDER, padding: '3px 8px 3px 10px', verticalAlign: 'top' }}>
+                  <td style={{ border: BORDER, padding: '1px 8px 1px 10px', verticalAlign: 'top' }}>
                     <span style={{ fontWeight: 600 }}>{i + 1}.</span> {term}
                   </td>
                 </tr>
               ))}
               {doc.notes && (
                 <tr>
-                  <td style={{ border: BORDER, padding: '4px 8px', backgroundColor: '#fffef5', whiteSpace: 'pre-line' }}>
+                  <td style={{ border: BORDER, padding: '2px 8px', backgroundColor: '#fffef5', whiteSpace: 'pre-line', fontSize: '7pt' }}>
                     <strong>เงื่อนไขเพิ่มเติม:</strong> {doc.notes}
                   </td>
                 </tr>
