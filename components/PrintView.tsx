@@ -760,14 +760,7 @@ export function PrintView({ doc, copy = false }: Props) {
                 verticalAlign: 'bottom',
               }}
             >
-              <div style={{ minHeight: isEquipmentLoan ? '18mm' : '14mm' }} />
-              {isEquipmentLoan && (
-                <div style={{ fontSize: '8.5pt', color: '#666', textAlign: 'left', marginBottom: '3mm', padding: '0 4px' }}>
-                  เพิ่มเติม:<br />
-                  <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
-                  <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
-                </div>
-              )}
+              <div style={{ minHeight: '14mm' }} />
               <div
                 style={{ borderTop: '1px solid #333', paddingTop: '4px', fontSize: '10pt' }}
               >
@@ -798,14 +791,7 @@ export function PrintView({ doc, copy = false }: Props) {
                 verticalAlign: 'bottom',
               }}
             >
-              <div style={{ minHeight: isEquipmentLoan ? '18mm' : '14mm' }} />
-              {isEquipmentLoan && (
-                <div style={{ fontSize: '8.5pt', color: '#666', textAlign: 'left', marginBottom: '3mm', padding: '0 4px' }}>
-                  เพิ่มเติม:<br />
-                  <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
-                  <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
-                </div>
-              )}
+              <div style={{ minHeight: '14mm' }} />
               <div
                 style={{ borderTop: '1px solid #333', paddingTop: '4px', fontSize: '10pt' }}
               >
