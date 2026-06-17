@@ -16,7 +16,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const body = await req.json();
   const existing = await InvoiceModel.findOne({ id });
-  if (existing && OPERATIONAL_DOC_TYPES.includes(existing.docType)) {
+  if (existing) {
     body.docNumber = existing.docNumber;
   }
   await InvoiceModel.updateOne({ id }, { $set: body }, { upsert: true });

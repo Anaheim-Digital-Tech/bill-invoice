@@ -228,10 +228,17 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
           />
           <TextInput
             label="เลขที่เอกสาร"
+            description="สร้างอัตโนมัติโดยระบบ — แก้ไขไม่ได้"
             value={docNumber}
-            onChange={(e) => setDocNumber(e.target.value)}
-            readOnly={isOperational}
-            styles={isOperational ? { input: { backgroundColor: 'var(--mantine-color-gray-1)' } } : undefined}
+            disabled
+            styles={{
+              input: {
+                backgroundColor: 'var(--mantine-color-gray-1)',
+                color: 'var(--mantine-color-text)',
+                opacity: 1,
+                cursor: 'not-allowed',
+              },
+            }}
             required
           />
           <Select
@@ -429,19 +436,24 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
       {/* Tax/Discount + Summary */}
       {isOperational ? (
         <Paper withBorder p="md" radius="md">
-          <Title order={5} mb="md">หมายเหตุ / เงื่อนไข</Title>
+          <Title order={5} mb="md">{isEquipmentLoan ? 'เงื่อนไขเพิ่มเติม (ถ้ามี)' : 'หมายเหตุ / เงื่อนไข'}</Title>
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={4}
+            rows={isEquipmentLoan ? 3 : 4}
             placeholder={
               isEquipmentLoan
-                ? 'เงื่อนไขการยืม/ใช้งาน ความรับผิดชอบต่ออุปกรณ์ ฯลฯ'
+                ? 'เงื่อนไขพิเศษเพิ่มจากมาตรฐาน (ถ้ามี) — เงื่อนไขหลักจะพิมพ์ท้ายกระดาษอัตโนมัติ'
                 : isEquipmentCheck
                   ? 'หมายเหตุการตรวจรับ สภาพอุปกรณ์เพิ่มเติม...'
                   : 'หมายเหตุการรับของ...'
             }
           />
+          {isEquipmentLoan && (
+            <Text size="xs" c="dimmed" mt="xs">
+              บนกระดาษพิมพ์จะมีช่องเขียนมือสำหรับสาย/อุปกรณ์เสริม และเงื่อนไขมาตรฐานท้ายเอกสาร
+            </Text>
+          )}
           {initial?.isArchive && (
             <Text size="sm" c="orange" mt="sm">เอกสารนี้ถูกเก็บถาวร (อายุเกิน 1 ปี)</Text>
           )}

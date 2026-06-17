@@ -47,9 +47,7 @@ export async function POST(req: Request) {
 
   const existing = await InvoiceModel.findOne({ id: body.id });
   if (existing) {
-    if (OPERATIONAL_DOC_TYPES.includes(existing.docType)) {
-      body.docNumber = existing.docNumber;
-    }
+    body.docNumber = existing.docNumber;
     await InvoiceModel.updateOne({ id: body.id }, { $set: body });
   } else {
     await InvoiceModel.create(body);

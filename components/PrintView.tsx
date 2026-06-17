@@ -1,7 +1,7 @@
 'use client';
 
 import type { InvoiceDoc } from '../lib/types';
-import { COMPANY, DOC_TYPE_LABELS, DUE_DATE_LABEL, PAYMENT_METHODS, isOperationalDocType } from '../lib/constants';
+import { COMPANY, DOC_TYPE_LABELS, DUE_DATE_LABEL, PAYMENT_METHODS, isOperationalDocType, EQUIPMENT_LOAN_DEFAULT_TERMS } from '../lib/constants';
 import { calcTotals, formatDate, formatMoney } from '../lib/utils';
 import { bahtText } from '../lib/thaiText';
 
@@ -50,6 +50,10 @@ export function PrintView({ doc, copy = false }: Props) {
   const isEquipmentCheck = doc.docType === 'equipmentcheck';
   const isEquipmentLoan = doc.docType === 'equipmentloan';
   const isGoodsReceipt = doc.docType === 'goodsreceipt';
+  const PAD_ROWS_LOAN = isEquipmentLoan ? Math.max(0, 3 - doc.items.length) : PAD_ROWS;
+
+  const titleLabel = DOC_TYPE_LABELS[doc.docType];
+  const titleFontSize = titleLabel.length > 28 ? '10.5pt' : titleLabel.length > 20 ? '12pt' : '16pt';
 
   return (
     <div
@@ -107,37 +111,38 @@ export function PrintView({ doc, copy = false }: Props) {
               <div
                 style={{
                   border: '2px solid #1a1a2e',
-                  textAlign: 'center',
-                  padding: '4px 0',
                   marginBottom: '4px',
-                  position: 'relative',
+                  padding: '4px 8px 6px',
                 }}
               >
-                <div
-                  style={{
-                    fontSize: '16pt',
-                    fontWeight: 800,
-                    letterSpacing: '1px',
-                    color: '#1a1a2e',
-                  }}
-                >
-                  {DOC_TYPE_LABELS[doc.docType]}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+                  <span
+                    style={{
+                      fontSize: '8pt',
+                      fontWeight: 700,
+                      color: copy ? '#888' : '#1a1a2e',
+                      border: copy ? '1px solid #aaa' : '1px solid #1a1a2e',
+                      padding: '1px 6px',
+                      borderRadius: '3px',
+                      letterSpacing: '0.5px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {copy ? 'สำเนา' : 'ต้นฉบับ'}
+                  </span>
                 </div>
                 <div
                   style={{
-                    position: 'absolute',
-                    top: '3px',
-                    right: '6px',
-                    fontSize: '8pt',
-                    fontWeight: 700,
-                    color: copy ? '#888' : '#1a1a2e',
-                    border: copy ? '1px solid #aaa' : '1px solid #1a1a2e',
-                    padding: '1px 6px',
-                    borderRadius: '3px',
+                    fontSize: titleFontSize,
+                    fontWeight: 800,
                     letterSpacing: '0.5px',
+                    color: '#1a1a2e',
+                    textAlign: 'center',
+                    lineHeight: 1.35,
+                    padding: '0 2px',
                   }}
                 >
-                  {copy ? 'สำเนา' : 'ต้นฉบับ'}
+                  {titleLabel}
                 </div>
               </div>
               {/* Doc number/date table */}
@@ -338,7 +343,7 @@ export function PrintView({ doc, copy = false }: Props) {
               {!isOperational && td(formatMoney(item.qty * item.unitPrice), { textAlign: 'right', fontWeight: 600 })}
             </tr>
           ))}
-          {Array.from({ length: PAD_ROWS }).map((_, i) => (
+          {Array.from({ length: isEquipmentLoan ? PAD_ROWS_LOAN : PAD_ROWS }).map((_, i) => (
             <tr key={`pad-${i}`} style={{ height: '18px' }}>
               {[...Array(
                 4 + (isEquipmentCheck || isEquipmentLoan ? 1 : 0) + (isEquipmentCheck ? 1 : 0) + (isOperational ? 0 : 2)
@@ -353,7 +358,7 @@ export function PrintView({ doc, copy = false }: Props) {
       {/* ══════════════════════════════════════════════
           SUMMARY / NOTES SECTION
       ══════════════════════════════════════════════ */}
-      {isOperational ? (
+      {isOperational && !isEquipmentLoan ? (
         doc.notes && (
           <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '3mm', border: BORDER, fontSize: '10pt' }}>
             <tbody>
@@ -366,7 +371,7 @@ export function PrintView({ doc, copy = false }: Props) {
             </tbody>
           </table>
         )
-      ) : (
+      ) : !isOperational ? (
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '3mm' }}>
         <tbody>
           <tr style={{ verticalAlign: 'top' }}>
@@ -645,21 +650,90 @@ export function PrintView({ doc, copy = false }: Props) {
           </tr>
         </tbody>
       </table>
-      )}
+      ) : null}
 
       {isEquipmentLoan && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '3mm', border: BORDER, fontSize: '9.5pt' }}>
-          <tbody>
-            <tr>
-              <td style={{ border: BORDER, padding: '6px 10px', backgroundColor: '#f9f9f9' }}>
-                ข้าพเจ้า <strong>{doc.handoverReceiverName || doc.customerName}</strong> ผู้รับมอบ และ{' '}
-                <strong>{doc.handoverSenderName || COMPANY.contacts[0].name}</strong> ผู้ส่งมอบในนาม {COMPANY.name}{' '}
-                ได้ทำบันทึกข้อตกลงการยืม/ใช้งานอุปกรณ์ตามรายการข้างต้น โดยผู้รับมอบตกลงใช้งานอุปกรณ์ตามเงื่อนไขที่กำหนด
-                และรับผิดชอบต่อความเสียหายที่เกิดขึ้นจากการใช้งานภายในระยะเวลาสัญญา
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2mm', border: BORDER, fontSize: '9.5pt' }}>
+            <thead>
+              <tr>
+                <th
+                  colSpan={2}
+                  style={{
+                    border: BORDER,
+                    padding: '4px 8px',
+                    backgroundColor: '#1a1a2e',
+                    color: '#fff',
+                    fontWeight: 600,
+                    textAlign: 'left',
+                  }}
+                >
+                  อุปกรณ์เสริม / สาย / อะไหล่เพิ่มเติม (เขียนมือ)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {['1.', '2.', '3.', '4.'].map((n) => (
+                <tr key={n}>
+                  <td style={{ border: BORDER, padding: '2px 8px', width: '6%', verticalAlign: 'bottom', color: '#666' }}>
+                    {n}
+                  </td>
+                  <td style={{ border: BORDER, padding: '0 8px', height: '7mm' }}>
+                    <div style={{ borderBottom: '1px dotted #999', height: '6.5mm' }} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2mm', border: BORDER, fontSize: '9pt' }}>
+            <tbody>
+              <tr>
+                <td style={{ border: BORDER, padding: '5px 10px', backgroundColor: '#f9f9f9' }}>
+                  ข้าพเจ้า <strong>{doc.handoverReceiverName || doc.customerName}</strong> ผู้รับมอบ และ{' '}
+                  <strong>{doc.handoverSenderName || COMPANY.contacts[0].name}</strong> ผู้ส่งมอบในนาม {COMPANY.name}{' '}
+                  ได้ทำบันทึกข้อตกลงการยืม/ใช้งานอุปกรณ์ตามรายการข้างต้น รวมถึงรายการที่เขียนเพิ่มเติมด้วยลายมือ
+                  โดยผู้รับมอบตกลงปฏิบัติตามเงื่อนไขด้านล่างนี้
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2mm', border: BORDER, fontSize: '8.5pt' }}>
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    border: BORDER,
+                    padding: '4px 8px',
+                    backgroundColor: '#1a1a2e',
+                    color: '#fff',
+                    fontWeight: 600,
+                    textAlign: 'left',
+                  }}
+                >
+                  เงื่อนไขและข้อตกลง
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {EQUIPMENT_LOAN_DEFAULT_TERMS.map((term, i) => (
+                <tr key={i}>
+                  <td style={{ border: BORDER, padding: '3px 8px 3px 10px', verticalAlign: 'top' }}>
+                    <span style={{ fontWeight: 600 }}>{i + 1}.</span> {term}
+                  </td>
+                </tr>
+              ))}
+              {doc.notes && (
+                <tr>
+                  <td style={{ border: BORDER, padding: '4px 8px', backgroundColor: '#fffef5', whiteSpace: 'pre-line' }}>
+                    <strong>เงื่อนไขเพิ่มเติม:</strong> {doc.notes}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </>
       )}
 
       {/* ══════════════════════════════════════════════
@@ -686,7 +760,14 @@ export function PrintView({ doc, copy = false }: Props) {
                 verticalAlign: 'bottom',
               }}
             >
-              <div style={{ minHeight: '14mm' }} />
+              <div style={{ minHeight: isEquipmentLoan ? '18mm' : '14mm' }} />
+              {isEquipmentLoan && (
+                <div style={{ fontSize: '8.5pt', color: '#666', textAlign: 'left', marginBottom: '3mm', padding: '0 4px' }}>
+                  หมายเหตุ/รายละเอียดเพิ่มเติม (เขียนมือ):<br />
+                  <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
+                  <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
+                </div>
+              )}
               <div
                 style={{ borderTop: '1px solid #333', paddingTop: '4px', fontSize: '10pt' }}
               >
@@ -717,7 +798,14 @@ export function PrintView({ doc, copy = false }: Props) {
                 verticalAlign: 'bottom',
               }}
             >
-              <div style={{ minHeight: '14mm' }} />
+              <div style={{ minHeight: isEquipmentLoan ? '18mm' : '14mm' }} />
+              {isEquipmentLoan && (
+                <div style={{ fontSize: '8.5pt', color: '#666', textAlign: 'left', marginBottom: '3mm', padding: '0 4px' }}>
+                  หมายเหตุ/รายละเอียดเพิ่มเติม (เขียนมือ):<br />
+                  <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
+                  <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
+                </div>
+              )}
               <div
                 style={{ borderTop: '1px solid #333', paddingTop: '4px', fontSize: '10pt' }}
               >
