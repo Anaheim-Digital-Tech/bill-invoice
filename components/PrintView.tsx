@@ -668,7 +668,7 @@ export function PrintView({ doc, copy = false }: Props) {
                     textAlign: 'left',
                   }}
                 >
-                  อุปกรณ์เสริม / สาย / อะไหล่เพิ่มเติม (เขียนมือ)
+                  เพิ่มเติม
                 </th>
               </tr>
             </thead>
@@ -763,7 +763,7 @@ export function PrintView({ doc, copy = false }: Props) {
               <div style={{ minHeight: isEquipmentLoan ? '18mm' : '14mm' }} />
               {isEquipmentLoan && (
                 <div style={{ fontSize: '8.5pt', color: '#666', textAlign: 'left', marginBottom: '3mm', padding: '0 4px' }}>
-                  หมายเหตุ/รายละเอียดเพิ่มเติม (เขียนมือ):<br />
+                  เพิ่มเติม:<br />
                   <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
                   <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
                 </div>
@@ -801,7 +801,7 @@ export function PrintView({ doc, copy = false }: Props) {
               <div style={{ minHeight: isEquipmentLoan ? '18mm' : '14mm' }} />
               {isEquipmentLoan && (
                 <div style={{ fontSize: '8.5pt', color: '#666', textAlign: 'left', marginBottom: '3mm', padding: '0 4px' }}>
-                  หมายเหตุ/รายละเอียดเพิ่มเติม (เขียนมือ):<br />
+                  เพิ่มเติม:<br />
                   <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
                   <span style={{ display: 'block', borderBottom: '1px dotted #aaa', height: '5mm', marginTop: '2px' }} />
                 </div>
