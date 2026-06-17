@@ -1,6 +1,14 @@
-export type DocType = 'salesorder' | 'quotation' | 'invoice' | 'receipt';
+export type DocType =
+  | 'salesorder'
+  | 'quotation'
+  | 'invoice'
+  | 'receipt'
+  | 'goodsreceipt'
+  | 'equipmentcheck'
+  | 'equipmentloan';
+
 export type TaxMode = 'excluded' | 'included' | 'none';
-export type DocStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+export type DocStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'completed';
 
 export interface LineItem {
   id: string;
@@ -8,6 +16,8 @@ export interface LineItem {
   qty: number;
   unit: string;
   unitPrice: number;
+  serialNo?: string;
+  condition?: string;
 }
 
 export interface InvoiceDoc {
@@ -30,6 +40,11 @@ export interface InvoiceDoc {
   paymentDate?: string;
   refDocId?: string;
   refDocNumber?: string;
+  isArchive?: boolean;
+  handoverSenderName?: string;
+  handoverReceiverName?: string;
+  loanStartDate?: string;
+  loanEndDate?: string;
   createdAt: string;
   updatedAt: string;
 }

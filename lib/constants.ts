@@ -1,10 +1,23 @@
 import type { DocType, DocStatus, TaxMode } from './types';
 
+export const OPERATIONAL_DOC_TYPES: DocType[] = [
+  'goodsreceipt',
+  'equipmentcheck',
+  'equipmentloan',
+];
+
+export function isOperationalDocType(t: DocType): boolean {
+  return OPERATIONAL_DOC_TYPES.includes(t);
+}
+
 export const STATUS_BY_TYPE: Record<DocType, DocStatus[]> = {
   salesorder: ['draft', 'sent', 'paid', 'cancelled'],
   quotation: ['draft', 'sent', 'cancelled'],
   invoice: ['draft', 'sent', 'paid', 'overdue', 'cancelled'],
   receipt: ['paid', 'cancelled'],
+  goodsreceipt: ['draft', 'sent', 'completed', 'cancelled'],
+  equipmentcheck: ['draft', 'sent', 'completed', 'cancelled'],
+  equipmentloan: ['draft', 'sent', 'completed', 'cancelled'],
 };
 
 export const DUE_DATE_LABEL: Record<DocType, string> = {
@@ -12,6 +25,9 @@ export const DUE_DATE_LABEL: Record<DocType, string> = {
   quotation: 'ใช้ได้ถึง',
   invoice: 'วันครบกำหนด',
   receipt: 'วันที่รับชำระ',
+  goodsreceipt: 'วันที่รับของ',
+  equipmentcheck: 'วันที่ตรวจรับ',
+  equipmentloan: 'วันที่สิ้นสุดสัญญา',
 };
 
 export const PAYMENT_METHODS = [
@@ -47,6 +63,9 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   quotation: 'ใบเสนอราคา',
   invoice: 'ใบแจ้งหนี้',
   receipt: 'ใบเสร็จรับเงิน / ใบกำกับภาษี',
+  goodsreceipt: 'ใบรับของ',
+  equipmentcheck: 'ใบตรวจรับอุปกรณ์ / ใบบันทึกสภาพอุปกรณ์',
+  equipmentloan: 'บันทึกข้อตกลงการยืม/ใช้งานอุปกรณ์ (ส่งมอบ-รับมอบ)',
 };
 
 export const DOC_TYPE_PREFIX: Record<DocType, string> = {
@@ -54,6 +73,9 @@ export const DOC_TYPE_PREFIX: Record<DocType, string> = {
   quotation: 'QT',
   invoice: 'IV',
   receipt: 'RC',
+  goodsreceipt: 'GR',
+  equipmentcheck: 'EC',
+  equipmentloan: 'EL',
 };
 
 export const DOC_STATUS_LABELS: Record<DocStatus, string> = {
@@ -62,6 +84,7 @@ export const DOC_STATUS_LABELS: Record<DocStatus, string> = {
   paid: 'ชำระแล้ว',
   overdue: 'เกินกำหนด',
   cancelled: 'ยกเลิก',
+  completed: 'เสร็จสิ้น',
 };
 
 export const DOC_STATUS_COLORS: Record<DocStatus, string> = {
@@ -70,6 +93,7 @@ export const DOC_STATUS_COLORS: Record<DocStatus, string> = {
   paid: 'green',
   overdue: 'red',
   cancelled: 'dark',
+  completed: 'teal',
 };
 
 export const TAX_MODE_LABELS: Record<TaxMode, string> = {
@@ -77,3 +101,6 @@ export const TAX_MODE_LABELS: Record<TaxMode, string> = {
   included: 'ภาษี 7% (รวม)',
   none: 'ไม่มีภาษี',
 };
+
+/** เอกสาร operational ที่ครบ 1 ปีจะถูก archive อัตโนมัติ */
+export const ARCHIVE_AFTER_YEARS = 1;

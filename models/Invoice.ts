@@ -7,20 +7,41 @@ const LineItemSchema = new Schema(
     qty: Number,
     unit: String,
     unitPrice: Number,
+    serialNo: String,
+    condition: String,
   },
   { _id: false }
 );
+
+const DOC_TYPES = [
+  'salesorder',
+  'quotation',
+  'invoice',
+  'receipt',
+  'goodsreceipt',
+  'equipmentcheck',
+  'equipmentloan',
+] as const;
+
+const DOC_STATUSES = [
+  'draft',
+  'sent',
+  'paid',
+  'overdue',
+  'cancelled',
+  'completed',
+] as const;
 
 const InvoiceSchema = new Schema(
   {
     id: { type: String, required: true, unique: true },
     docNumber: { type: String, required: true },
-    docType: { type: String, enum: ['salesorder', 'quotation', 'invoice', 'receipt'], default: 'invoice' },
+    docType: { type: String, enum: DOC_TYPES, default: 'invoice' },
     issueDate: String,
     dueDate: String,
     status: {
       type: String,
-      enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'],
+      enum: DOC_STATUSES,
       default: 'draft',
     },
     customerName: String,
@@ -36,6 +57,11 @@ const InvoiceSchema = new Schema(
     paymentDate: String,
     refDocId: String,
     refDocNumber: String,
+    isArchive: { type: Boolean, default: false },
+    handoverSenderName: String,
+    handoverReceiverName: String,
+    loanStartDate: String,
+    loanEndDate: String,
   },
   { timestamps: true }
 );

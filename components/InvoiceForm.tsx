@@ -17,7 +17,8 @@ import { getAllContacts, saveContact } from '../lib/contacts';
 import type { InvoiceDoc, LineItem, DocType, TaxMode, DocStatus } from '../lib/types';
 import {
   DOC_TYPE_LABELS, DOC_STATUS_LABELS, TAX_MODE_LABELS,
-  STATUS_BY_TYPE, DUE_DATE_LABEL, PAYMENT_METHODS,
+  STATUS_BY_TYPE, DUE_DATE_LABEL, PAYMENT_METHODS, COMPANY,
+  isOperationalDocType,
 } from '../lib/constants';
 import { saveDoc, generateDocNumber } from '../lib/store';
 import { calcTotals, formatMoney, uid, todayISO, addDaysISO } from '../lib/utils';
@@ -68,9 +69,14 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
   const handleDocTypeChange = (v: string) => {
     const next = v as DocType;
     setDocType(next);
-    // ถ้าสถานะปัจจุบันไม่อยู่ในรายการที่อนุญาต ให้ reset
     if (!STATUS_BY_TYPE[next].includes(status)) {
-      setStatus(next === 'receipt' ? 'paid' : 'draft');
+      if (next === 'receipt') setStatus('paid');
+      else if (isOperationalDocType(next)) setStatus('draft');
+      else setStatus('draft');
+    }
+    if (isOperationalDocType(next)) {
+      setTaxMode('none');
+      setDiscountPercent(0);
     }
   };
 
@@ -83,6 +89,23 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
   const [discountPercent, setDiscountPercent] = useState(initial?.discountPercent ?? 0);
   const [taxMode, setTaxMode] = useState<TaxMode>(initial?.taxMode ?? 'excluded');
   const [notes, setNotes] = useState(initial?.notes ?? '');
+
+  const isOperational = isOperationalDocType(docType);
+  const isEquipmentCheck = docType === 'equipmentcheck';
+  const isEquipmentLoan = docType === 'equipmentloan';
+
+  const [handoverSenderName, setHandoverSenderName] = useState(
+    initial?.handoverSenderName ?? COMPANY.contacts[0].name
+  );
+  const [handoverReceiverName, setHandoverReceiverName] = useState(initial?.handoverReceiverName ?? '');
+  const [loanStartDate, setLoanStartDate] = useState(initial?.loanStartDate ?? todayISO());
+  const [loanEndDate, setLoanEndDate] = useState(initial?.loanEndDate ?? addDaysISO(todayISO(), 365));
+
+  useEffect(() => {
+    if (isEquipmentLoan && customerName && !handoverReceiverName) {
+      setHandoverReceiverName(customerName);
+    }
+  }, [customerName, isEquipmentLoan, handoverReceiverName]);
 
   const addItem = useCallback(() => setItems((p) => [...p, newItem()]), []);
   const removeItem = useCallback((id: string) => setItems((p) => p.filter((i) => i.id !== id)), []);
@@ -100,6 +123,7 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
     setCustomerTaxId(c.taxId);
     setCustomerPhone(c.phone);
     setCustomerEmail(c.email);
+    if (isEquipmentLoan) setHandoverReceiverName(c.name);
     setContactPickerOpen(false);
     notifications.show({ title: 'กรอกข้อมูลแล้ว', message: c.name, color: 'blue' });
   };
@@ -118,14 +142,19 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
   const buildDoc = (): InvoiceDoc => ({
     id: initial?.id ?? uid(),
     docNumber, docType, issueDate,
-    dueDate: docType === 'receipt' ? paymentDate : dueDate,
+    dueDate: docType === 'receipt' ? paymentDate : isEquipmentLoan ? loanEndDate : dueDate,
     status,
     customerName, customerAddress, customerTaxId, customerPhone, customerEmail,
-    items, discountPercent, taxMode, notes,
+    items, discountPercent, taxMode: isOperational ? 'none' : taxMode, notes,
     paymentMethod: docType === 'receipt' ? paymentMethod : undefined,
     paymentDate: docType === 'receipt' ? paymentDate : undefined,
     refDocId: initial?.refDocId,
     refDocNumber: initial?.refDocNumber,
+    isArchive: initial?.isArchive ?? false,
+    handoverSenderName: isEquipmentLoan ? handoverSenderName : undefined,
+    handoverReceiverName: isEquipmentLoan ? handoverReceiverName : undefined,
+    loanStartDate: isEquipmentLoan ? loanStartDate : undefined,
+    loanEndDate: isEquipmentLoan ? loanEndDate : undefined,
     createdAt: initial?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
@@ -197,7 +226,14 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
             value={docType}
             onChange={(v) => v && handleDocTypeChange(v)}
           />
-          <TextInput label="เลขที่เอกสาร" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} required />
+          <TextInput
+            label="เลขที่เอกสาร"
+            value={docNumber}
+            onChange={(e) => setDocNumber(e.target.value)}
+            readOnly={isOperational}
+            styles={isOperational ? { input: { backgroundColor: 'var(--mantine-color-gray-1)' } } : undefined}
+            required
+          />
           <Select
             label="สถานะ"
             data={STATUS_BY_TYPE[docType].map((v) => ({ value: v, label: DOC_STATUS_LABELS[v] }))}
@@ -226,6 +262,21 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
                 onChange={(v) => v && setPaymentMethod(v)}
               />
             </>
+          ) : isEquipmentLoan ? (
+            <>
+              <TextInput
+                label="วันเริ่มสัญญา"
+                type="date"
+                value={loanStartDate}
+                onChange={(e) => setLoanStartDate(e.target.value)}
+              />
+              <TextInput
+                label="วันสิ้นสุดสัญญา"
+                type="date"
+                value={loanEndDate}
+                onChange={(e) => setLoanEndDate(e.target.value)}
+              />
+            </>
           ) : (
             <TextInput
               label={DUE_DATE_LABEL[docType]}
@@ -249,7 +300,9 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
       {/* Customer Info */}
       <Paper withBorder p="md" radius="md">
         <Group justify="space-between" mb="md">
-          <Title order={5}>ข้อมูลลูกค้า / ผู้รับบิล</Title>
+          <Title order={5}>
+            {isEquipmentLoan ? 'ข้อมูลผู้รับมอบ (ลูกค้า)' : 'ข้อมูลลูกค้า / ผู้รับบิล'}
+          </Title>
           <Group gap="xs">
             <Tooltip label="บันทึกลูกค้าปัจจุบัน">
               <Button size="xs" variant="light" color="green" leftSection={<IconUserPlus size={14} />} onClick={saveCurrentAsContact}>
@@ -272,10 +325,41 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
         </Stack>
       </Paper>
 
+      {isEquipmentLoan && (
+        <Paper withBorder p="md" radius="md">
+          <Title order={5} mb="md">ข้อมูลผู้ส่งมอบ (ฝั่งเรา)</Title>
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+            <TextInput
+              label="ชื่อผู้ส่งมอบ"
+              value={handoverSenderName}
+              onChange={(e) => setHandoverSenderName(e.target.value)}
+              placeholder={COMPANY.contacts[0].name}
+            />
+            <TextInput
+              label="ชื่อผู้รับมอบ"
+              value={handoverReceiverName}
+              onChange={(e) => setHandoverReceiverName(e.target.value)}
+              placeholder="ชื่อผู้รับมอบฝั่งลูกค้า"
+            />
+          </SimpleGrid>
+          <Text size="xs" c="dimmed" mt="sm">
+            ในนาม {COMPANY.name}
+          </Text>
+        </Paper>
+      )}
+
       {/* Line Items */}
       <Paper withBorder p="md" radius="md">
         <Group justify="space-between" mb="md">
-          <Title order={5}>รายการสินค้า / บริการ</Title>
+          <Title order={5}>
+            {isEquipmentCheck
+              ? 'รายการอุปกรณ์ / สภาพ'
+              : isEquipmentLoan
+                ? 'รายการอุปกรณ์ที่ส่งมอบ'
+                : isOperational
+                  ? 'รายการสินค้า'
+                  : 'รายการสินค้า / บริการ'}
+          </Title>
           <Button size="xs" variant="light" leftSection={<IconPlus size={14} />} onClick={addItem}>
             เพิ่มรายการ
           </Button>
@@ -286,10 +370,16 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
               <Table.Tr>
                 <Table.Th w={36}>#</Table.Th>
                 <Table.Th>รายการ</Table.Th>
+                {(isEquipmentCheck || isEquipmentLoan) && <Table.Th w={110}>เลขเครื่อง/S/N</Table.Th>}
+                {isEquipmentCheck && <Table.Th w={120}>สภาพ</Table.Th>}
                 <Table.Th w={90}>จำนวน</Table.Th>
                 <Table.Th w={90}>หน่วย</Table.Th>
-                <Table.Th w={130}>ราคา/หน่วย (฿)</Table.Th>
-                <Table.Th w={130} ta="right">รวม (฿)</Table.Th>
+                {!isOperational && (
+                  <>
+                    <Table.Th w={130}>ราคา/หน่วย (฿)</Table.Th>
+                    <Table.Th w={130} ta="right">รวม (฿)</Table.Th>
+                  </>
+                )}
                 <Table.Th w={40}></Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -300,16 +390,30 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
                   <Table.Td>
                     <TextInput size="xs" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} placeholder="ระบุรายการ..." />
                   </Table.Td>
+                  {(isEquipmentCheck || isEquipmentLoan) && (
+                    <Table.Td>
+                      <TextInput size="xs" value={item.serialNo ?? ''} onChange={(e) => updateItem(item.id, 'serialNo', e.target.value)} placeholder="S/N" />
+                    </Table.Td>
+                  )}
+                  {isEquipmentCheck && (
+                    <Table.Td>
+                      <TextInput size="xs" value={item.condition ?? ''} onChange={(e) => updateItem(item.id, 'condition', e.target.value)} placeholder="ดี/พอใช้/ชำรุด" />
+                    </Table.Td>
+                  )}
                   <Table.Td>
                     <NumberInput size="xs" value={item.qty} onChange={(v) => updateItem(item.id, 'qty', Number(v) || 0)} min={0} decimalScale={2} hideControls />
                   </Table.Td>
                   <Table.Td>
                     <TextInput size="xs" value={item.unit} onChange={(e) => updateItem(item.id, 'unit', e.target.value)} />
                   </Table.Td>
-                  <Table.Td>
-                    <NumberInput size="xs" value={item.unitPrice} onChange={(v) => updateItem(item.id, 'unitPrice', Number(v) || 0)} min={0} decimalScale={2} thousandSeparator="," hideControls />
-                  </Table.Td>
-                  <Table.Td ta="right"><Text size="sm" fw={500}>{formatMoney(item.qty * item.unitPrice)}</Text></Table.Td>
+                  {!isOperational && (
+                    <>
+                      <Table.Td>
+                        <NumberInput size="xs" value={item.unitPrice} onChange={(v) => updateItem(item.id, 'unitPrice', Number(v) || 0)} min={0} decimalScale={2} thousandSeparator="," hideControls />
+                      </Table.Td>
+                      <Table.Td ta="right"><Text size="sm" fw={500}>{formatMoney(item.qty * item.unitPrice)}</Text></Table.Td>
+                    </>
+                  )}
                   <Table.Td>
                     <ActionIcon color="red" variant="subtle" size="sm" onClick={() => removeItem(item.id)} disabled={items.length === 1}>
                       <IconTrash size={14} />
@@ -323,6 +427,26 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
       </Paper>
 
       {/* Tax/Discount + Summary */}
+      {isOperational ? (
+        <Paper withBorder p="md" radius="md">
+          <Title order={5} mb="md">หมายเหตุ / เงื่อนไข</Title>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+            placeholder={
+              isEquipmentLoan
+                ? 'เงื่อนไขการยืม/ใช้งาน ความรับผิดชอบต่ออุปกรณ์ ฯลฯ'
+                : isEquipmentCheck
+                  ? 'หมายเหตุการตรวจรับ สภาพอุปกรณ์เพิ่มเติม...'
+                  : 'หมายเหตุการรับของ...'
+            }
+          />
+          {initial?.isArchive && (
+            <Text size="sm" c="orange" mt="sm">เอกสารนี้ถูกเก็บถาวร (อายุเกิน 1 ปี)</Text>
+          )}
+        </Paper>
+      ) : (
       <Grid>
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Paper withBorder p="md" radius="md" h="100%">
@@ -374,6 +498,7 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
           </Paper>
         </Grid.Col>
       </Grid>
+      )}
 
       {/* Bottom actions */}
       <Group justify="flex-end" mt="xs" wrap="wrap" gap="xs">

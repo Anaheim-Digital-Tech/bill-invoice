@@ -1,7 +1,7 @@
 'use client';
 
 import type { InvoiceDoc } from '../lib/types';
-import { COMPANY, DOC_TYPE_LABELS, DUE_DATE_LABEL, PAYMENT_METHODS } from '../lib/constants';
+import { COMPANY, DOC_TYPE_LABELS, DUE_DATE_LABEL, PAYMENT_METHODS, isOperationalDocType } from '../lib/constants';
 import { calcTotals, formatDate, formatMoney } from '../lib/utils';
 import { bahtText } from '../lib/thaiText';
 
@@ -46,6 +46,10 @@ const td = (content: React.ReactNode, style?: React.CSSProperties): React.ReactN
 export function PrintView({ doc, copy = false }: Props) {
   const totals = calcTotals(doc.items, doc.discountPercent, doc.taxMode);
   const PAD_ROWS = Math.max(0, 5 - doc.items.length);
+  const isOperational = isOperationalDocType(doc.docType);
+  const isEquipmentCheck = doc.docType === 'equipmentcheck';
+  const isEquipmentLoan = doc.docType === 'equipmentloan';
+  const isGoodsReceipt = doc.docType === 'goodsreceipt';
 
   return (
     <div
@@ -177,21 +181,32 @@ export function PrintView({ doc, copy = false }: Props) {
                       {formatDate(doc.issueDate)}
                     </td>
                   </tr>
-                  <tr>
-                    <td
-                      style={{
-                        border: BORDER,
-                        padding: '4px 8px',
-                        backgroundColor: '#f5f5f5',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {DUE_DATE_LABEL[doc.docType]}
-                    </td>
-                    <td style={{ border: BORDER, padding: '4px 8px' }}>
-                      {formatDate(doc.paymentDate ?? doc.dueDate)}
-                    </td>
-                  </tr>
+                  {isEquipmentLoan && doc.loanStartDate && (
+                    <tr>
+                      <td style={{ border: BORDER, padding: '4px 8px', backgroundColor: '#f5f5f5', fontWeight: 600 }}>
+                        วันเริ่มสัญญา
+                      </td>
+                      <td style={{ border: BORDER, padding: '4px 8px' }}>{formatDate(doc.loanStartDate)}</td>
+                    </tr>
+                  )}
+                  {!isEquipmentLoan && (
+                    <tr>
+                      <td style={{ border: BORDER, padding: '4px 8px', backgroundColor: '#f5f5f5', fontWeight: 600 }}>
+                        {DUE_DATE_LABEL[doc.docType]}
+                      </td>
+                      <td style={{ border: BORDER, padding: '4px 8px' }}>
+                        {formatDate(doc.paymentDate ?? doc.dueDate)}
+                      </td>
+                    </tr>
+                  )}
+                  {isEquipmentLoan && doc.loanEndDate && (
+                    <tr>
+                      <td style={{ border: BORDER, padding: '4px 8px', backgroundColor: '#f5f5f5', fontWeight: 600 }}>
+                        วันสิ้นสุดสัญญา
+                      </td>
+                      <td style={{ border: BORDER, padding: '4px 8px' }}>{formatDate(doc.loanEndDate)}</td>
+                    </tr>
+                  )}
                   {doc.refDocNumber && (
                     <tr>
                       <td
@@ -247,7 +262,7 @@ export function PrintView({ doc, copy = false }: Props) {
             >
               เรียน /
               <br />
-              ลูกค้า
+              {isEquipmentLoan ? 'ผู้รับมอบ' : 'ลูกค้า'}
             </td>
             <td style={{ border: BORDER, padding: '4px 10px', width: '44%', verticalAlign: 'top' }}>
               <div style={{ fontWeight: 700, fontSize: '11pt' }}>{doc.customerName}</div>
@@ -298,11 +313,16 @@ export function PrintView({ doc, copy = false }: Props) {
         <thead>
           <tr>
             {th('ลำดับ', { width: '6%', textAlign: 'center' })}
-            {th('รายการสินค้า / บริการ', { width: '43%', textAlign: 'left' })}
+            {th(
+              isEquipmentCheck || isEquipmentLoan ? 'รายการอุปกรณ์' : isGoodsReceipt ? 'รายการสินค้า' : 'รายการสินค้า / บริการ',
+              { width: isOperational ? '40%' : '43%', textAlign: 'left' }
+            )}
+            {(isEquipmentCheck || isEquipmentLoan) && th('เลขเครื่อง/S/N', { width: '14%', textAlign: 'center' })}
+            {isEquipmentCheck && th('สภาพ', { width: '12%', textAlign: 'center' })}
             {th('จำนวน', { width: '10%', textAlign: 'center' })}
             {th('หน่วย', { width: '9%', textAlign: 'center' })}
-            {th('ราคา/หน่วย (บาท)', { width: '16%', textAlign: 'right' })}
-            {th('จำนวนเงิน (บาท)', { width: '16%', textAlign: 'right' })}
+            {!isOperational && th('ราคา/หน่วย (บาท)', { width: '16%', textAlign: 'right' })}
+            {!isOperational && th('จำนวนเงิน (บาท)', { width: '16%', textAlign: 'right' })}
           </tr>
         </thead>
         <tbody>
@@ -310,18 +330,19 @@ export function PrintView({ doc, copy = false }: Props) {
             <tr key={item.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
               {td(idx + 1, { textAlign: 'center' })}
               {td(item.description)}
+              {(isEquipmentCheck || isEquipmentLoan) && td(item.serialNo || '—', { textAlign: 'center' })}
+              {isEquipmentCheck && td(item.condition || '—', { textAlign: 'center' })}
               {td(item.qty, { textAlign: 'center' })}
               {td(item.unit, { textAlign: 'center' })}
-              {td(formatMoney(item.unitPrice), { textAlign: 'right' })}
-              {td(formatMoney(item.qty * item.unitPrice), {
-                textAlign: 'right',
-                fontWeight: 600,
-              })}
+              {!isOperational && td(formatMoney(item.unitPrice), { textAlign: 'right' })}
+              {!isOperational && td(formatMoney(item.qty * item.unitPrice), { textAlign: 'right', fontWeight: 600 })}
             </tr>
           ))}
           {Array.from({ length: PAD_ROWS }).map((_, i) => (
             <tr key={`pad-${i}`} style={{ height: '18px' }}>
-              {[...Array(6)].map((__, j) => (
+              {[...Array(
+                4 + (isEquipmentCheck || isEquipmentLoan ? 1 : 0) + (isEquipmentCheck ? 1 : 0) + (isOperational ? 0 : 2)
+              )].map((__, j) => (
                 <td key={j} style={{ border: BORDER }} />
               ))}
             </tr>
@@ -330,8 +351,22 @@ export function PrintView({ doc, copy = false }: Props) {
       </table>
 
       {/* ══════════════════════════════════════════════
-          SUMMARY SECTION (payment left, totals right)
+          SUMMARY / NOTES SECTION
       ══════════════════════════════════════════════ */}
+      {isOperational ? (
+        doc.notes && (
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '3mm', border: BORDER, fontSize: '10pt' }}>
+            <tbody>
+              <tr>
+                <td style={{ border: BORDER, padding: '4px 8px', backgroundColor: '#1a1a2e', color: '#fff', fontWeight: 600, width: '12%' }}>
+                  หมายเหตุ
+                </td>
+                <td style={{ border: BORDER, padding: '6px 10px', whiteSpace: 'pre-line' }}>{doc.notes}</td>
+              </tr>
+            </tbody>
+          </table>
+        )
+      ) : (
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '3mm' }}>
         <tbody>
           <tr style={{ verticalAlign: 'top' }}>
@@ -610,6 +645,22 @@ export function PrintView({ doc, copy = false }: Props) {
           </tr>
         </tbody>
       </table>
+      )}
+
+      {isEquipmentLoan && (
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '3mm', border: BORDER, fontSize: '9.5pt' }}>
+          <tbody>
+            <tr>
+              <td style={{ border: BORDER, padding: '6px 10px', backgroundColor: '#f9f9f9' }}>
+                ข้าพเจ้า <strong>{doc.handoverReceiverName || doc.customerName}</strong> ผู้รับมอบ และ{' '}
+                <strong>{doc.handoverSenderName || COMPANY.contacts[0].name}</strong> ผู้ส่งมอบในนาม {COMPANY.name}{' '}
+                ได้ทำบันทึกข้อตกลงการยืม/ใช้งานอุปกรณ์ตามรายการข้างต้น โดยผู้รับมอบตกลงใช้งานอุปกรณ์ตามเงื่อนไขที่กำหนด
+                และรับผิดชอบต่อความเสียหายที่เกิดขึ้นจากการใช้งานภายในระยะเวลาสัญญา
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      )}
 
       {/* ══════════════════════════════════════════════
           SIGNATURE BLOCK
@@ -639,9 +690,17 @@ export function PrintView({ doc, copy = false }: Props) {
               <div
                 style={{ borderTop: '1px solid #333', paddingTop: '4px', fontSize: '10pt' }}
               >
-                <div>ลายมือชื่อผู้รับสินค้า / บริการ</div>
+                <div>
+                  {isEquipmentLoan
+                    ? `ลายมือชื่อผู้รับมอบ — ${doc.handoverReceiverName || doc.customerName || '........................................'}`
+                    : isGoodsReceipt
+                      ? 'ลายมือชื่อผู้รับของ'
+                      : isEquipmentCheck
+                        ? 'ลายมือชื่อผู้ตรวจรับ'
+                        : 'ลายมือชื่อผู้รับสินค้า / บริการ'}
+                </div>
                 <div style={{ color: '#555', fontSize: '9.5pt' }}>
-                  Authorized Signature (Customer)
+                  {isEquipmentLoan ? 'Authorized Signature (Receiver)' : 'Authorized Signature (Customer)'}
                 </div>
                 <div style={{ marginTop: '2px', fontSize: '9pt', color: '#555' }}>
                   วันที่ ............................................
@@ -662,9 +721,13 @@ export function PrintView({ doc, copy = false }: Props) {
               <div
                 style={{ borderTop: '1px solid #333', paddingTop: '4px', fontSize: '10pt' }}
               >
-                <div>ในนาม {COMPANY.name}</div>
+                <div>
+                  {isEquipmentLoan
+                    ? `ลายมือชื่อผู้ส่งมอบ — ${doc.handoverSenderName || COMPANY.contacts[0].name}`
+                    : `ในนาม ${COMPANY.name}`}
+                </div>
                 <div style={{ color: '#555', fontSize: '9.5pt' }}>
-                  Authorized Signature (Issuer)
+                  {isEquipmentLoan ? 'Authorized Signature (Sender)' : 'Authorized Signature (Issuer)'}
                 </div>
                 <div style={{ marginTop: '4px', fontSize: '9pt', color: '#555' }}>
                   วันที่ ............................................

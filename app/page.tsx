@@ -18,6 +18,7 @@ import type { InvoiceDoc, DocStatus, DocType } from '../lib/types';
 import { getAllDocs, deleteDoc, saveDoc } from '../lib/store';
 import {
   DOC_TYPE_LABELS, DOC_STATUS_LABELS, DOC_STATUS_COLORS, DOC_TYPE_PREFIX, COMPANY,
+  STATUS_BY_TYPE, isOperationalDocType,
 } from '../lib/constants';
 import { formatDate, formatMoney, calcTotals, uid, todayISO } from '../lib/utils';
 import { AppHeader } from '../components/AppHeader';
@@ -39,9 +40,10 @@ export default function HomePage() {
   const [amountMin, setAmountMin] = useState<number | string>('');
   const [amountMax, setAmountMax] = useState<number | string>('');
   const [advancedOpen, { toggle: toggleAdvanced }] = useDisclosure(false);
+  const [showArchive, setShowArchive] = useState(false);
 
-  const reload = () => { getAllDocs().then(setDocs); };
-  useEffect(() => { reload(); }, []);
+  const reload = () => { getAllDocs(showArchive).then(setDocs); };
+  useEffect(() => { reload(); }, [showArchive]);
 
   const filtered = docs.filter((d) => {
     const q = search.toLowerCase();
@@ -56,9 +58,10 @@ export default function HomePage() {
     return matchSearch && matchStatus && matchDocType && matchDateFrom && matchDateTo && matchAmountMin && matchAmountMax;
   });
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (doc: InvoiceDoc) => {
+    if (isOperationalDocType(doc.docType)) return;
     if (!confirm('ยืนยันการลบเอกสารนี้?')) return;
-    const ok = await deleteDoc(id);
+    const ok = await deleteDoc(doc.id);
     if (ok) {
       reload();
       notifications.show({ title: 'ลบเอกสารแล้ว', message: '', color: 'red' });
@@ -76,7 +79,8 @@ export default function HomePage() {
       id: uid(),
       docNumber: `${header}${String(count + 1).padStart(3, '0')}`,
       issueDate: todayISO(),
-      status: 'draft',
+      status: isOperationalDocType(doc.docType) ? 'draft' : 'draft',
+      isArchive: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -179,6 +183,13 @@ export default function HomePage() {
             <Group justify="space-between" align="center">
               <Title order={4}>รายการเอกสารทั้งหมด</Title>
               <Group gap="xs">
+                <Button
+                  variant={showArchive ? 'filled' : 'light'}
+                  size="sm"
+                  onClick={() => setShowArchive((v) => !v)}
+                >
+                  {showArchive ? 'ซ่อนเก็บถาวร' : 'เอกสารเก็บถาวร'}
+                </Button>
                 <Button
                   variant="light"
                   size="sm"
@@ -329,7 +340,14 @@ export default function HomePage() {
                           style={{ cursor: 'pointer' }}
                           onClick={() => router.push(`/invoices/${doc.id}`)}
                         >
-                          <Table.Td><Text fw={600} size="sm">{doc.docNumber}</Text></Table.Td>
+                          <Table.Td>
+                            <Group gap={4} wrap="nowrap">
+                              <Text fw={600} size="sm">{doc.docNumber}</Text>
+                              {doc.isArchive && (
+                                <Badge size="xs" color="gray" variant="outline">เก็บถาวร</Badge>
+                              )}
+                            </Group>
+                          </Table.Td>
                           <Table.Td visibleFrom="sm"><Text size="sm">{DOC_TYPE_LABELS[doc.docType]}</Text></Table.Td>
                           <Table.Td>
                             <Text size="sm" lineClamp={1}>{doc.customerName}</Text>
@@ -345,9 +363,9 @@ export default function HomePage() {
                                 </Badge>
                               </Menu.Target>
                               <Menu.Dropdown>
-                                {Object.entries(DOC_STATUS_LABELS).map(([v, l]) => (
-                                  <Menu.Item key={v} fw={doc.status === v ? 700 : 400} onClick={() => handleStatusChange(doc, v as DocStatus)}>
-                                    {l}
+                                {STATUS_BY_TYPE[doc.docType].map((v) => (
+                                  <Menu.Item key={v} fw={doc.status === v ? 700 : 400} onClick={() => handleStatusChange(doc, v)}>
+                                    {DOC_STATUS_LABELS[v]}
                                   </Menu.Item>
                                 ))}
                               </Menu.Dropdown>
@@ -373,8 +391,12 @@ export default function HomePage() {
                                     สร้าง {DOC_TYPE_LABELS[NEXT_DOC_TYPE[doc.docType]!]} จากนี้
                                   </Menu.Item>
                                 )}
-                                <Menu.Divider />
-                                <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={() => handleDelete(doc.id)}>ลบ</Menu.Item>
+                                {!isOperationalDocType(doc.docType) && (
+                                  <>
+                                    <Menu.Divider />
+                                    <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={() => handleDelete(doc)}>ลบ</Menu.Item>
+                                  </>
+                                )}
                               </Menu.Dropdown>
                             </Menu>
                           </Table.Td>

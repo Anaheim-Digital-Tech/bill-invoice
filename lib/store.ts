@@ -11,9 +11,10 @@ function checkAuth(res: Response) {
   }
 }
 
-export async function getAllDocs(): Promise<InvoiceDoc[]> {
+export async function getAllDocs(includeArchive = false): Promise<InvoiceDoc[]> {
   try {
-    const res = await fetch(BASE, { cache: 'no-store' });
+    const url = includeArchive ? `${BASE}?includeArchive=1` : BASE;
+    const res = await fetch(url, { cache: 'no-store' });
     checkAuth(res);
     if (!res.ok) return [];
     return res.json();
