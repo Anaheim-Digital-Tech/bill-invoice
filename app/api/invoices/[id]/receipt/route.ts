@@ -26,6 +26,12 @@ export async function POST(
   if (invoice.docType !== 'invoice') {
     return NextResponse.json({ error: 'only invoice can become receipt' }, { status: 400 });
   }
+  if (invoice.status === 'cancelled' || invoice.status === 'draft') {
+    return NextResponse.json(
+      { error: 'invoice must be sent or overdue before creating receipt' },
+      { status: 400 }
+    );
+  }
 
   const receipt = await createReceiptFromInvoice(invoice as InvoiceDoc);
   if (!receipt) {

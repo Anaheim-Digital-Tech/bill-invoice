@@ -5,7 +5,6 @@ import {
   buildInvoiceFromSubscription,
   comparePeriod,
   periodsDue,
-  proRataForPeriod,
   isBillablePeriod,
 } from './billingCore';
 import { InvoiceModel } from '../models/Invoice';
@@ -16,6 +15,7 @@ export async function syncSubscriptionLastBilledPeriod(subscriptionId: string): 
     subscriptionId,
     docType: 'invoice',
     billingPeriod: { $exists: true, $nin: [null, ''] },
+    status: { $ne: 'cancelled' },
   })
     .select('billingPeriod')
     .lean();
@@ -46,6 +46,23 @@ export interface BillingResult {
   period: string;
 }
 
+function periodsToBill(
+  sub: Subscription,
+  today: Date,
+  force: boolean,
+  singlePeriod?: string
+): string[] {
+  if (singlePeriod) {
+    if (!isBillablePeriod(sub, singlePeriod)) return [];
+    if (!force) {
+      const due = periodsDue(sub, today, false);
+      if (!due.includes(singlePeriod)) return [];
+    }
+    return [singlePeriod];
+  }
+  return periodsDue(sub, today, force);
+}
+
 export async function processBilling(opts?: {
   subscriptionId?: string;
   force?: boolean;
@@ -66,7 +83,7 @@ export async function processBilling(opts?: {
   const generated: BillingResult[] = [];
 
   for (const sub of subs) {
-    const periods = singlePeriod ? [singlePeriod] : periodsDue(sub, today, force);
+    const periods = periodsToBill(sub, today, force, singlePeriod);
 
     for (const period of periods) {
       if (!force && sub.status !== 'active') break;
@@ -74,6 +91,8 @@ export async function processBilling(opts?: {
       const existing = await InvoiceModel.findOne({
         subscriptionId: sub.id,
         billingPeriod: period,
+        docType: 'invoice',
+        status: { $ne: 'cancelled' },
       });
       if (existing) continue;
 
@@ -81,7 +100,13 @@ export async function processBilling(opts?: {
 
       const docNumber = await generateDocNumber('invoice');
       const invoice = buildInvoiceFromSubscription(sub, period, docNumber);
-      await InvoiceModel.create(invoice);
+      try {
+        await InvoiceModel.create(invoice);
+      } catch (err) {
+        const dup = err as { code?: number };
+        if (dup.code === 11000) continue;
+        throw err;
+      }
 
       generated.push({
         subscriptionId: sub.id,
@@ -103,6 +128,7 @@ export async function createReceiptFromInvoice(
   const existing = await InvoiceModel.findOne({
     refDocId: invoice.id,
     docType: 'receipt',
+    status: { $ne: 'cancelled' },
   }).lean();
 
   if (existing) {
@@ -110,35 +136,49 @@ export async function createReceiptFromInvoice(
     return existing as InvoiceDoc;
   }
 
-  const raw = invoice as InvoiceDoc & { _id?: unknown; __v?: unknown };
-  const { _id: _mongoId, __v: _ver, ...base } = raw;
-
   const docNumber = await generateDocNumber('receipt');
   const now = new Date().toISOString();
   const paymentMethod = invoice.paymentMethod ?? 'transfer';
   const paymentDate = todayISO();
+
   const receipt: InvoiceDoc = {
-    ...(base as InvoiceDoc),
     id: uid(),
     docType: 'receipt',
     docNumber,
     issueDate: paymentDate,
     dueDate: paymentDate,
     status: 'paid',
+    customerName: invoice.customerName,
+    customerAddress: invoice.customerAddress,
+    customerTaxId: invoice.customerTaxId,
+    customerPhone: invoice.customerPhone,
+    customerEmail: invoice.customerEmail,
+    items: invoice.items.map((item) => ({ ...item })),
+    discountPercent: invoice.discountPercent,
+    taxMode: invoice.taxMode,
+    notes: invoice.notes,
     paymentMethod,
     paymentDate,
     refDocId: invoice.id,
     refDocNumber: invoice.docNumber,
+    withholdingTaxPercent: invoice.withholdingTaxPercent,
     createdAt: now,
     updatedAt: now,
   };
 
   try {
     await InvoiceModel.create(receipt);
+  } catch (err) {
+    console.error('createReceiptFromInvoice failed:', err);
+    return null;
+  }
+
+  try {
     await markInvoicePaid(invoice.id, paymentMethod);
     return receipt;
   } catch (err) {
-    console.error('createReceiptFromInvoice failed:', err);
+    await InvoiceModel.deleteOne({ id: receipt.id });
+    console.error('markInvoicePaid failed, rolled back receipt:', err);
     return null;
   }
 }
@@ -157,16 +197,18 @@ async function markInvoicePaid(invoiceId: string, paymentMethod?: string): Promi
 }
 
 export async function handleInvoiceStatusChange(
-  invoice: InvoiceDoc,
+  invoiceId: string,
   previousStatus?: string
 ): Promise<{ receiptId?: string; receiptDocNumber?: string }> {
+  const invoice = await InvoiceModel.findOne({ id: invoiceId }).lean();
+  if (!invoice) return {};
   if (invoice.status !== 'paid' || previousStatus === 'paid') return {};
   if (!invoice.subscriptionId) return {};
 
   const sub = await SubscriptionModel.findOne({ id: invoice.subscriptionId }).lean();
   if (!sub || sub.autoCreateReceipt === false) return {};
 
-  const receipt = await createReceiptFromInvoice(invoice);
+  const receipt = await createReceiptFromInvoice(invoice as InvoiceDoc);
   if (!receipt) return {};
 
   return { receiptId: receipt.id, receiptDocNumber: receipt.docNumber };

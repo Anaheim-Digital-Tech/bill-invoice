@@ -63,6 +63,7 @@ const InvoiceSchema = new Schema(
     loanStartDate: String,
     loanEndDate: String,
     subscriptionId: String,
+    subscriptionName: String,
     billingPeriod: String,
     proRataDays: Number,
     proRataTotalDays: Number,
@@ -70,6 +71,18 @@ const InvoiceSchema = new Schema(
     eTaxStatus: { type: String, enum: ['none', 'ready', 'submitted'], default: 'none' },
   },
   { timestamps: true }
+);
+
+InvoiceSchema.index(
+  { subscriptionId: 1, billingPeriod: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      docType: 'invoice',
+      subscriptionId: { $type: 'string' },
+      billingPeriod: { $type: 'string' },
+    },
+  }
 );
 
 export const InvoiceModel =

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { IconPrinter, IconArrowLeft } from '@tabler/icons-react';
 import { PrintView } from '../../../../components/PrintView';
 import { getDoc } from '../../../../lib/store';
+import { getSubscription } from '../../../../lib/subscriptions';
+import { thaiPeriodLabel } from '../../../../lib/subscriptionBilling';
 import type { InvoiceDoc } from '../../../../lib/types';
 
 type PrintMode = 'original' | 'copy' | 'both';
@@ -14,10 +16,25 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
   const { id } = use(params);
   const router = useRouter();
   const [doc, setDoc] = useState<InvoiceDoc | null | undefined>(undefined);
+  const [subscriptionLabel, setSubscriptionLabel] = useState<string | undefined>();
   const [printMode, setPrintMode] = useState<PrintMode>('original');
 
   useEffect(() => {
-    getDoc(id).then((d) => setDoc(d ?? null));
+    getDoc(id).then(async (d) => {
+      setDoc(d ?? null);
+      if (!d?.subscriptionId) {
+        setSubscriptionLabel(undefined);
+        return;
+      }
+      const name = d.subscriptionName
+        ?? (await getSubscription(d.subscriptionId).catch(() => null))?.name;
+      if (!name) {
+        setSubscriptionLabel(undefined);
+        return;
+      }
+      const period = d.billingPeriod ? ` · งวด ${thaiPeriodLabel(d.billingPeriod)}` : '';
+      setSubscriptionLabel(`${name}${period}`);
+    });
   }, [id]);
 
   if (doc === undefined) return <Center py={80}><Loader /></Center>;
@@ -79,12 +96,12 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
       {/* Print content */}
       {printMode === 'both' ? (
         <>
-          <PrintView doc={doc} copy={false} />
+          <PrintView doc={doc} copy={false} subscriptionLabel={subscriptionLabel} />
           <div style={{ pageBreakAfter: 'always', height: 0 }} />
-          <PrintView doc={doc} copy={true} />
+          <PrintView doc={doc} copy={true} subscriptionLabel={subscriptionLabel} />
         </>
       ) : (
-        <PrintView doc={doc} copy={printMode === 'copy'} />
+        <PrintView doc={doc} copy={printMode === 'copy'} subscriptionLabel={subscriptionLabel} />
       )}
     </div>
   );

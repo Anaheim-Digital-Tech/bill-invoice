@@ -8,6 +8,7 @@ import { bahtText } from '../lib/thaiText';
 interface Props {
   doc: InvoiceDoc;
   copy?: boolean;
+  subscriptionLabel?: string;
 }
 
 const BORDER = '1px solid #333';
@@ -43,7 +44,7 @@ const td = (content: React.ReactNode, style?: React.CSSProperties): React.ReactN
   </td>
 );
 
-export function PrintView({ doc, copy = false }: Props) {
+export function PrintView({ doc, copy = false, subscriptionLabel }: Props) {
   const whtPercent = doc.withholdingTaxPercent ?? 0;
   const totals = calcTotalsWithWht(doc.items, doc.discountPercent, doc.taxMode, whtPercent);
   const PAD_ROWS = Math.max(0, 5 - doc.items.length);
@@ -211,6 +212,23 @@ export function PrintView({ doc, copy = false }: Props) {
                         วันสิ้นสุดสัญญา
                       </td>
                       <td style={{ border: BORDER, padding: '4px 8px' }}>{formatDate(doc.loanEndDate)}</td>
+                    </tr>
+                  )}
+                  {subscriptionLabel && (
+                    <tr>
+                      <td
+                        style={{
+                          border: BORDER,
+                          padding: '4px 8px',
+                          backgroundColor: '#f5f5f5',
+                          fontWeight: 600,
+                        }}
+                      >
+                        สัญญาเช่า
+                      </td>
+                      <td style={{ border: BORDER, padding: '4px 8px', fontSize: '9.5pt', color: '#555' }}>
+                        {subscriptionLabel}
+                      </td>
                     </tr>
                   )}
                   {doc.refDocNumber && (

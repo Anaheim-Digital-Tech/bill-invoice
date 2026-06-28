@@ -15,13 +15,15 @@ import {
   IconChevronDown, IconChevronUp, IconArrowRight,
 } from '@tabler/icons-react';
 import type { InvoiceDoc, DocStatus, DocType } from '../lib/types';
-import { getAllDocs, deleteDoc, saveDoc, createReceiptFromInvoiceId } from '../lib/store';
+import { getAllDocs, deleteDoc, saveDoc, createReceiptFromInvoiceId, generateDocNumber } from '../lib/store';
 import {
-  DOC_TYPE_LABELS, DOC_STATUS_LABELS, DOC_STATUS_COLORS, DOC_TYPE_PREFIX, COMPANY,
+  DOC_TYPE_LABELS, DOC_STATUS_LABELS, DOC_STATUS_COLORS, COMPANY,
   STATUS_BY_TYPE, isOperationalDocType,
 } from '../lib/constants';
 import { formatDate, formatMoney, calcTotals, uid, todayISO } from '../lib/utils';
+import { sumPaidRevenue, sumPendingRevenue } from '../lib/revenue';
 import { thaiPeriodLabel } from '../lib/subscriptionBilling';
+import { getAllSubscriptions } from '../lib/subscriptions';
 import { AppHeader } from '../components/AppHeader';
 
 const NEXT_DOC_TYPE: Partial<Record<DocType, DocType>> = {
@@ -42,9 +44,15 @@ export default function HomePage() {
   const [amountMax, setAmountMax] = useState<number | string>('');
   const [advancedOpen, { toggle: toggleAdvanced }] = useDisclosure(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [subNames, setSubNames] = useState<Record<string, string>>({});
 
   const reload = () => { getAllDocs(showArchive).then(setDocs); };
   useEffect(() => { reload(); }, [showArchive]);
+  useEffect(() => {
+    getAllSubscriptions()
+      .then((subs) => setSubNames(Object.fromEntries(subs.map((s) => [s.id, s.name]))))
+      .catch(() => {});
+  }, []);
 
   const filtered = docs.filter((d) => {
     const q = search.toLowerCase();
@@ -72,15 +80,25 @@ export default function HomePage() {
   };
 
   const handleDuplicate = async (doc: InvoiceDoc) => {
-    const now = new Date();
-    const header = `${DOC_TYPE_PREFIX[doc.docType]}${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const count = docs.filter((d) => d.docNumber.startsWith(header)).length;
+    const {
+      subscriptionId: _s,
+      subscriptionName: _sn,
+      billingPeriod: _bp,
+      proRataDays: _pd,
+      proRataTotalDays: _pt,
+      refDocId: _ref,
+      refDocNumber: _refn,
+      paymentDate: _pdate,
+      paymentMethod: _pm,
+      ...base
+    } = doc;
+    const docNumber = await generateDocNumber(doc.docType);
     const newDoc: InvoiceDoc = {
-      ...doc,
+      ...base,
       id: uid(),
-      docNumber: `${header}${String(count + 1).padStart(3, '0')}`,
+      docNumber,
       issueDate: todayISO(),
-      status: isOperationalDocType(doc.docType) ? 'draft' : 'draft',
+      status: 'draft',
       isArchive: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -118,19 +136,28 @@ export default function HomePage() {
     }
     const nextType = NEXT_DOC_TYPE[doc.docType];
     if (!nextType) return;
-    const now = new Date();
-    const prefix = DOC_TYPE_PREFIX[nextType];
-    const header = `${prefix}${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const count = docs.filter((d) => d.docNumber.startsWith(header)).length;
+    const {
+      subscriptionId: _s,
+      subscriptionName: _sn,
+      billingPeriod: _bp,
+      proRataDays: _pd,
+      proRataTotalDays: _pt,
+      refDocId: _ref,
+      refDocNumber: _refn,
+      paymentDate: _pdate,
+      paymentMethod: _pm,
+      ...base
+    } = doc;
+    const docNumber = await generateDocNumber(nextType);
     const newDoc: InvoiceDoc = {
-      ...doc,
+      ...base,
       id: uid(),
       docType: nextType,
-      docNumber: `${header}${String(count + 1).padStart(3, '0')}`,
+      docNumber,
       issueDate: todayISO(),
       status: nextType === 'receipt' ? 'paid' : 'draft',
-      paymentMethod: nextType === 'receipt' ? (doc.paymentMethod ?? 'transfer') : doc.paymentMethod,
-      paymentDate: nextType === 'receipt' ? todayISO() : doc.paymentDate,
+      paymentMethod: nextType === 'receipt' ? (doc.paymentMethod ?? 'transfer') : undefined,
+      paymentDate: nextType === 'receipt' ? todayISO() : undefined,
       refDocId: doc.id,
       refDocNumber: doc.docNumber,
       createdAt: new Date().toISOString(),
@@ -138,6 +165,9 @@ export default function HomePage() {
     };
     const result = await saveDoc(newDoc);
     if (result.ok) {
+      if (doc.docType === 'quotation' || doc.docType === 'salesorder') {
+        await saveDoc({ ...doc, status: 'completed' });
+      }
       reload();
       router.push(`/invoices/${newDoc.id}`);
       notifications.show({ title: 'สร้างเอกสารใหม่แล้ว', message: `${newDoc.docNumber} อ้างอิงจาก ${doc.docNumber}`, color: 'teal' });
@@ -177,10 +207,8 @@ export default function HomePage() {
     a.click();
   };
 
-  const totalPending = docs.filter((d) => d.status === 'sent' || d.status === 'overdue')
-    .reduce((s, d) => s + calcTotals(d.items, d.discountPercent, d.taxMode).total, 0);
-  const totalPaid = docs.filter((d) => d.status === 'paid')
-    .reduce((s, d) => s + calcTotals(d.items, d.discountPercent, d.taxMode).total, 0);
+  const totalPending = sumPendingRevenue(docs);
+  const totalPaid = sumPaidRevenue(docs);
 
   return (
     <Box>
@@ -383,6 +411,11 @@ export default function HomePage() {
                                 </Badge>
                               )}
                             </Group>
+                            {doc.subscriptionId && (
+                              <Text size="xs" c="dimmed" lineClamp={1}>
+                                สัญญา: {doc.subscriptionName ?? subNames[doc.subscriptionId] ?? 'เช่ารายเดือน'}
+                              </Text>
+                            )}
                           </Table.Td>
                           <Table.Td visibleFrom="sm"><Text size="sm">{DOC_TYPE_LABELS[doc.docType]}</Text></Table.Td>
                           <Table.Td>

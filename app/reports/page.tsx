@@ -10,6 +10,7 @@ import type { InvoiceDoc } from '../../lib/types';
 import { getAllDocs } from '../../lib/store';
 import { DOC_STATUS_LABELS, DOC_STATUS_COLORS } from '../../lib/constants';
 import { calcTotals, formatMoney, formatDate } from '../../lib/utils';
+import { sumPaidRevenue, sumPendingRevenue, sumRevenueDocs, docAmount } from '../../lib/revenue';
 import { AppHeader } from '../../components/AppHeader';
 
 const MONTHS = [
@@ -35,10 +36,12 @@ export default function ReportsPage() {
   ).sort((a, b) => Number(b) - Number(a));
   if (!years.includes(year)) years.unshift(year);
 
-  const totalAll = filtered.reduce((s, d) => s + calcTotals(d.items, d.discountPercent, d.taxMode).total, 0);
-  const totalPaid = filtered.filter(d => d.status === 'paid').reduce((s, d) => s + calcTotals(d.items, d.discountPercent, d.taxMode).total, 0);
-  const totalPending = filtered.filter(d => d.status === 'sent' || d.status === 'overdue').reduce((s, d) => s + calcTotals(d.items, d.discountPercent, d.taxMode).total, 0);
-  const totalCancelled = filtered.filter(d => d.status === 'cancelled').reduce((s, d) => s + calcTotals(d.items, d.discountPercent, d.taxMode).total, 0);
+  const totalAll = sumRevenueDocs(filtered);
+  const totalPaid = sumPaidRevenue(filtered);
+  const totalPending = sumPendingRevenue(filtered);
+  const totalCancelled = filtered
+    .filter((d) => d.status === 'cancelled' && d.docType !== 'receipt')
+    .reduce((s, d) => s + docAmount(d), 0);
 
   // Monthly summary for the selected year
   const monthlySummary = MONTHS.map((name, idx) => {
@@ -47,8 +50,8 @@ export default function ReportsPage() {
       const [y, dm] = d.issueDate.split('-');
       return y === year && dm === m;
     });
-    const total = monthDocs.reduce((s, d) => s + calcTotals(d.items, d.discountPercent, d.taxMode).total, 0);
-    const paid = monthDocs.filter(d => d.status === 'paid').reduce((s, d) => s + calcTotals(d.items, d.discountPercent, d.taxMode).total, 0);
+    const total = sumRevenueDocs(monthDocs);
+    const paid = sumPaidRevenue(monthDocs);
     return { name, count: monthDocs.length, total, paid };
   });
 

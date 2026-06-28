@@ -46,6 +46,7 @@ export interface InvoiceDoc {
   loanStartDate?: string;
   loanEndDate?: string;
   subscriptionId?: string;
+  subscriptionName?: string;
   billingPeriod?: string;
   proRataDays?: number;
   proRataTotalDays?: number;

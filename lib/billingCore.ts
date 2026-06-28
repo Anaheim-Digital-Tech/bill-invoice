@@ -164,6 +164,7 @@ export function buildInvoiceFromSubscription(
       ? `${sub.notes}\nงวด: ${periodLabel}`
       : `งวด: ${periodLabel}`,
     subscriptionId: sub.id,
+    subscriptionName: sub.name,
     billingPeriod: period,
     proRataDays: useProRata ? pr.days : undefined,
     proRataTotalDays: useProRata ? pr.totalDays : undefined,

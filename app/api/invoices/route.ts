@@ -3,7 +3,6 @@ import { connectDB } from '../../../lib/db';
 import { InvoiceModel } from '../../../models/Invoice';
 import { ARCHIVE_AFTER_YEARS, OPERATIONAL_DOC_TYPES } from '../../../lib/constants';
 import { handleInvoiceStatusChange } from '../../../lib/billingEngine';
-import type { InvoiceDoc } from '../../../lib/types';
 
 function archiveCutoffISO(): string {
   const d = new Date();
@@ -57,10 +56,7 @@ export async function POST(req: Request) {
     await InvoiceModel.create(body);
   }
 
-  const receipt = await handleInvoiceStatusChange(
-    body as InvoiceDoc,
-    previousStatus
-  );
+  const receipt = await handleInvoiceStatusChange(body.id, previousStatus);
 
   return NextResponse.json({ ok: true, ...receipt });
 }

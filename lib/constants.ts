@@ -11,8 +11,8 @@ export function isOperationalDocType(t: DocType): boolean {
 }
 
 export const STATUS_BY_TYPE: Record<DocType, DocStatus[]> = {
-  salesorder: ['draft', 'sent', 'paid', 'cancelled'],
-  quotation: ['draft', 'sent', 'cancelled'],
+  salesorder: ['draft', 'sent', 'paid', 'completed', 'cancelled'],
+  quotation: ['draft', 'sent', 'completed', 'cancelled'],
   invoice: ['draft', 'sent', 'paid', 'overdue', 'cancelled'],
   receipt: ['paid', 'cancelled'],
   goodsreceipt: ['draft', 'sent', 'completed', 'cancelled'],

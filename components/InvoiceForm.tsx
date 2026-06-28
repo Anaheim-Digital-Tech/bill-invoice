@@ -10,8 +10,10 @@ import {
 import { notifications } from '@mantine/notifications';
 import {
   IconPlus, IconTrash, IconDeviceFloppy, IconPrinter,
-  IconArrowLeft, IconAddressBook, IconUserPlus, IconLink, IconFileInvoice,
+  IconArrowLeft, IconAddressBook, IconUserPlus, IconLink, IconFileInvoice, IconCalendarRepeat,
 } from '@tabler/icons-react';
+import { getSubscription } from '../lib/subscriptions';
+import { thaiPeriodLabel } from '../lib/subscriptionBilling';
 import type { Contact } from '../lib/contacts';
 import { getAllContacts, saveContact } from '../lib/contacts';
 import type { InvoiceDoc, LineItem, DocType, TaxMode, DocStatus } from '../lib/types';
@@ -39,6 +41,16 @@ const newItem = (): LineItem => ({
 
 export function InvoiceForm({ initial, isNew = false }: Props) {
   const router = useRouter();
+  const [subscriptionName, setSubscriptionName] = useState<string | null>(
+    initial?.subscriptionName ?? null
+  );
+
+  useEffect(() => {
+    if (!initial?.subscriptionId || initial.subscriptionName) return;
+    getSubscription(initial.subscriptionId).then((s) => {
+      if (s) setSubscriptionName(s.name);
+    });
+  }, [initial?.subscriptionId, initial?.subscriptionName]);
 
   // Document metadata
   const [docType, setDocType] = useState<DocType>(initial?.docType ?? 'invoice');
@@ -158,6 +170,13 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
     paymentDate: docType === 'receipt' ? paymentDate : undefined,
     refDocId: initial?.refDocId,
     refDocNumber: initial?.refDocNumber,
+    subscriptionId: initial?.subscriptionId,
+    subscriptionName: initial?.subscriptionName ?? subscriptionName ?? undefined,
+    billingPeriod: initial?.billingPeriod,
+    proRataDays: initial?.proRataDays,
+    proRataTotalDays: initial?.proRataTotalDays,
+    withholdingTaxPercent: initial?.withholdingTaxPercent,
+    eTaxStatus: initial?.eTaxStatus,
     isArchive: initial?.isArchive ?? false,
     handoverSenderName: isEquipmentLoan ? handoverSenderName : undefined,
     handoverReceiverName: isEquipmentLoan ? handoverReceiverName : undefined,
@@ -177,7 +196,10 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
     if (!validate()) return;
     const result = await saveDoc(buildDoc());
     if (result.ok) {
-      notifications.show({ title: 'บันทึกสำเร็จ', message: `${DOC_TYPE_LABELS[docType]} ${docNumber}`, color: 'green' });
+      const msg = result.receiptDocNumber
+        ? `${DOC_TYPE_LABELS[docType]} ${docNumber} (สร้าง RC ${result.receiptDocNumber})`
+        : `${DOC_TYPE_LABELS[docType]} ${docNumber}`;
+      notifications.show({ title: 'บันทึกสำเร็จ', message: msg, color: 'green' });
       router.push('/');
     } else {
       notifications.show({ title: 'บันทึกไม่สำเร็จ', message: 'กรุณาลองใหม่', color: 'red' });
@@ -257,6 +279,24 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
           </Button>
         </Group>
       </Group>
+
+      {/* Subscription source */}
+      {initial?.subscriptionId && (
+        <Paper withBorder p="sm" radius="md" style={{ backgroundColor: 'var(--mantine-color-violet-0)', borderColor: 'var(--mantine-color-violet-3)' }}>
+          <Group gap="xs" wrap="wrap">
+            <IconCalendarRepeat size={16} color="var(--mantine-color-violet-7)" />
+            <Text size="sm">
+              ออกจากสัญญาเช่ารายเดือน: <strong>{subscriptionName ?? 'กำลังโหลด...'}</strong>
+              {initial.billingPeriod && (
+                <> · งวด <strong>{thaiPeriodLabel(initial.billingPeriod)}</strong></>
+              )}
+            </Text>
+            <Anchor size="sm" c="violet" onClick={() => router.push(`/subscriptions/${initial.subscriptionId}`)}>
+              ดูสัญญา →
+            </Anchor>
+          </Group>
+        </Paper>
+      )}
 
       {/* Reference Doc */}
       {initial?.refDocNumber && (

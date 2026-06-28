@@ -94,12 +94,20 @@ export async function createReceiptFromInvoiceId(
 }
 
 export async function generateDocNumber(docType: DocType): Promise<string> {
-  const prefix = DOC_TYPE_PREFIX[docType];
-  const now = new Date();
-  const yy = String(now.getFullYear()).slice(2);
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const header = `${prefix}${yy}${mm}`;
-  const all = await getAllDocs();
-  const count = all.filter((d) => d.docNumber.startsWith(header)).length;
-  return `${header}${String(count + 1).padStart(3, '0')}`;
+  try {
+    const res = await fetch(`${BASE}/next-number?docType=${docType}`, { cache: 'no-store' });
+    checkAuth(res);
+    if (!res.ok) throw new Error('failed');
+    const data = await res.json();
+    return data.docNumber as string;
+  } catch {
+    const prefix = DOC_TYPE_PREFIX[docType];
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const header = `${prefix}${yy}${mm}`;
+    const all = await getAllDocs();
+    const count = all.filter((d) => d.docNumber.startsWith(header)).length;
+    return `${header}${String(count + 1).padStart(3, '0')}`;
+  }
 }

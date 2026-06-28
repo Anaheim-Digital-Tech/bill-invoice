@@ -3,7 +3,6 @@ import { connectDB } from '../../../../lib/db';
 import { InvoiceModel } from '../../../../models/Invoice';
 import { OPERATIONAL_DOC_TYPES } from '../../../../lib/constants';
 import { handleInvoiceStatusChange, syncSubscriptionLastBilledPeriod } from '../../../../lib/billingEngine';
-import type { InvoiceDoc } from '../../../../lib/types';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   await connectDB();
@@ -20,12 +19,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const existing = await InvoiceModel.findOne({ id });
   const previousStatus = existing?.status as string | undefined;
 
-  if (existing) {
-    body.docNumber = existing.docNumber;
+  if (!existing) {
+    return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
-  await InvoiceModel.updateOne({ id }, { $set: body }, { upsert: true });
+  body.docNumber = existing.docNumber;
+  await InvoiceModel.updateOne({ id }, { $set: body });
 
-  const receipt = await handleInvoiceStatusChange(body as InvoiceDoc, previousStatus);
+  const receipt = await handleInvoiceStatusChange(id, previousStatus);
 
   return NextResponse.json({ ok: true, ...receipt });
 }
