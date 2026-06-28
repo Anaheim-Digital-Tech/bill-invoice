@@ -6,7 +6,7 @@ import {
 } from '@mantine/core';
 import {
   IconBook, IconLogin, IconFilePlus, IconPrinter, IconArrowRight,
-  IconCircleCheck, IconPackage, IconTools, IconHandStop,
+  IconCircleCheck, IconPackage, IconTools, IconHandStop, IconRepeat,
 } from '@tabler/icons-react';
 import { AppHeader } from '../../components/AppHeader';
 import { DOC_TYPE_LABELS } from '../../lib/constants';
@@ -45,8 +45,8 @@ export default function GuidePage() {
               <Accordion.Panel>
                 <Stack gap="sm">
                   <Step n={1}>เข้า https://factura.anaheimdigitaltech.com แล้วลงชื่อเข้าใช้</Step>
-                  <Step n={2}>หน้า Dashboard แสดงรายการเอกสารทั้งหมด ค้นหา กรอง และดูสถิติยอดเงิน</Step>
-                  <Step n={3}>กด <strong>สร้างเอกสารใหม่</strong> เพื่อเริ่มออกเอกสาร</Step>
+                  <Step n={2}>หน้า Dashboard แสดงรายการเอกสารทั้งหมด ค้นหา กรอง และดูสถิติยอดเงิน (บิลจากสัญญาเช่าจะมี badge งวด)</Step>
+                  <Step n={3}>เมนูด้านบน: <strong>เช่ารายเดือน</strong> · <strong>รายงาน</strong> · <strong>สร้างเอกสารใหม่</strong></Step>
                 </Stack>
               </Accordion.Panel>
             </Accordion.Item>
@@ -104,7 +104,7 @@ export default function GuidePage() {
                   <List size="sm" spacing="xs">
                     <List.Item>สร้าง QT → สถานะ <Badge size="xs" color="gray">ร่าง</Badge> → <Badge size="xs" color="blue">ส่งแล้ว</Badge></List.Item>
                     <List.Item>เมนู ⋮ → <strong>สร้างใบแจ้งหนี้จากนี้</strong> (เลขที่ใหม่ + อ้างอิงเอกสารเดิม)</List.Item>
-                    <List.Item>ลูกค้าชำระเงิน → แปลงเป็น RC → กรอกวันที่รับชำระและวิธีชำระ</List.Item>
+                    <List.Item>ลูกค้าชำระเงิน → สร้าง RC ได้ 3 ทาง: ปุ่ม <strong>สร้างใบเสร็จจากบิลนี้</strong> ในหน้า IV · เมนู ⋮ บน Dashboard · เปลี่ยนสถานะ IV เป็น <Badge size="xs" color="green">ชำระแล้ว</Badge> (บิลจากสัญญาเช่าสร้าง RC อัตโนมัติถ้าเปิดไว้)</List.Item>
                   </List>
                 </Stack>
               </Accordion.Panel>
@@ -137,7 +137,7 @@ export default function GuidePage() {
                       บันทึกข้อตกลงส่งมอบ-รับมอบ ระบุผู้ส่งมอบ (เรา) และผู้รับมอบ (ลูกค้า) วันเริ่ม-สิ้นสุดสัญญา
                     </Text>
                     <Text size="sm" c="dimmed">
-                      บนกระดาษพิมพ์มีช่องเขียนมือสำหรับสาย/อุปกรณ์เสริม เงื่อนไขท้ายกระดาษ และลายเซ็น 2 ฝั่ง
+                      บนกระดาษพิมพ์มีแถวว่างในตารางรายการสำหรับเขียนเพิ่มเติมด้วยมือ เงื่อนไขท้ายกระดาษ และลายเซ็น 2 ฝั่ง
                     </Text>
                   </Paper>
                   <List size="sm" spacing="xs">
@@ -145,6 +145,43 @@ export default function GuidePage() {
                     <List.Item>เอกสารปฏิบัติการ <strong>ลบไม่ได้</strong></List.Item>
                     <List.Item>ครบ 1 ปี ระบบเก็บถาวรอัตโนมัติ — ดูได้จากปุ่ม <strong>เอกสารเก็บถาวร</strong> บน Dashboard</List.Item>
                   </List>
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+
+            <Accordion.Item value="subscription">
+              <Accordion.Control icon={<IconRepeat size={18} />}>เช่ารายเดือน / บิลอัตโนมัติ</Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="md">
+                  <Text size="sm" c="dimmed">
+                    ใช้สำหรับค่าเช่าระบบ ค่าบริการรายเดือน ฯลฯ — แยกจากเอกสารส่งมอบอุปกรณ์ (EL)
+                  </Text>
+                  <Paper withBorder p="md" radius="md">
+                    <Text fw={600} mb="sm">Flow สัญญาเช่า</Text>
+                    <Group gap="xs" wrap="wrap">
+                      <Badge variant="outline">สร้างสัญญา</Badge>
+                      <Text size="sm">→</Text>
+                      <Badge variant="outline">IV ร่าง (draft)</Badge>
+                      <Text size="sm">→</Text>
+                      <Badge variant="outline">ตรวจแล้วส่ง</Badge>
+                      <Text size="sm">→</Text>
+                      <Badge variant="outline">ชำระแล้ว → RC</Badge>
+                    </Group>
+                  </Paper>
+                  <List size="sm" spacing="xs">
+                    <List.Item>เมนู <strong>เช่ารายเดือน</strong> → <strong>สร้างสัญญาใหม่</strong> กรอกลูกค้า ยอด/เดือน วันตัดรอบ</List.Item>
+                    <List.Item>ระบบออก IV อัตโนมัติทุกวัน 06:00 ตามวันตัดรอบ (หรือกด <strong>ออกบิลงวดที่ค้าง</strong> เอง)</List.Item>
+                    <List.Item>IV ออกเป็น <Badge size="xs" color="gray">ร่าง</Badge> ก่อน — ตรวจยอดแล้วเปลี่ยนเป็น <Badge size="xs" color="blue">ส่งแล้ว</Badge></List.Item>
+                    <List.Item>ลบ IV แล้วออกใหม่ได้ — ระบบ sync งวดจากบิลจริงใน DB</List.Item>
+                    <List.Item>ค่าเริ่มต้นคิด <strong>เต็มเดือน</strong> — เปิด pro-rata ในสัญญาได้ถ้าต้องการคิดตามวัน</List.Item>
+                    <List.Item>ตั้ง <strong>หัก ณ ที่จ่าย</strong> ได้ — แสดงในใบพิมพ์เป็นยอดชำระสุทธิ</List.Item>
+                    <List.Item>เปิด <strong>สร้าง RC อัตโนมัติ</strong> ในสัญญา → เมื่อ IV เป็น ชำระแล้ว ระบบสร้างใบเสร็จให้</List.Item>
+                  </List>
+                  <Paper withBorder p="sm" bg="gray.0">
+                    <Text size="sm">
+                      รายละเอียดในใบแจ้งหนี้ใส่ <code>{'{period}'}</code> เพื่อแทนที่ด้วยเดือน/ปีอัตโนมัติ เช่น <em>ค่าเช่ารายเดือน {'{period}'}</em>
+                    </Text>
+                  </Paper>
                 </Stack>
               </Accordion.Panel>
             </Accordion.Item>
@@ -205,7 +242,11 @@ export default function GuidePage() {
                       </Table.Tr>
                       <Table.Tr>
                         <Table.Td>ส่งมอบ-รับมอบ</Table.Td>
-                        <Table.Td>ต้นฉบับ → ให้ลูกค้าเซ็น + เขียนสาย/อุปกรณ์เสริมด้วยมือ</Table.Td>
+                        <Table.Td>ต้นฉบับ → ให้ลูกค้าเซ็น + เขียนเพิ่มเติมในตารางด้วยมือ</Table.Td>
+                      </Table.Tr>
+                      <Table.Tr>
+                        <Table.Td>ใบแจ้งหนี้ (มีหัก ณ ที่จ่าย)</Table.Td>
+                        <Table.Td>แสดงยอดรวม → หัก ณ ที่จ่าย → ยอดชำระสุทธิ</Table.Td>
                       </Table.Tr>
                       <Table.Tr>
                         <Table.Td>ใบรับของ / ตรวจรับ</Table.Td>
@@ -232,6 +273,7 @@ export default function GuidePage() {
                     <Table.Tr><Table.Td>เปลี่ยนสถานะ</Table.Td><Table.Td>คลิก Badge สถานะบนแถว</Table.Td></Table.Tr>
                     <Table.Tr><Table.Td>คัดลอก</Table.Td><Table.Td>เมนู ⋮ → คัดลอก (ได้เลขที่ใหม่)</Table.Td></Table.Tr>
                     <Table.Tr><Table.Td>แปลงเอกสาร</Table.Td><Table.Td>เมนู ⋮ → สร้าง IV/RC จากนี้ (เฉพาะเอกสารการเงิน)</Table.Td></Table.Tr>
+                    <Table.Tr><Table.Td>สร้างใบเสร็จจาก IV</Table.Td><Table.Td>เปิดหน้าแก้ไข IV → ปุ่ม <strong>สร้างใบเสร็จจากบิลนี้</strong></Table.Td></Table.Tr>
                     <Table.Tr><Table.Td>ลบ</Table.Td><Table.Td>ได้เฉพาะเอกสารการเงิน (ปฏิบัติการลบไม่ได้)</Table.Td></Table.Tr>
                     <Table.Tr><Table.Td>ดูเอกสารเก่า</Table.Td><Table.Td>ปุ่ม เอกสารเก็บถาวร บน Dashboard</Table.Td></Table.Tr>
                     <Table.Tr><Table.Td>Export</Table.Td><Table.Td>ปุ่ม Export CSV</Table.Td></Table.Tr>
@@ -245,10 +287,13 @@ export default function GuidePage() {
             <Title order={5} mb="xs">สรุปวันทำงานจริง</Title>
             <List size="sm" spacing="xs">
               <List.Item>
-                <strong>ขายของ:</strong> QT → ส่งลูกค้า → แปลง IV → รับเงิน → แปลง RC → พิมพ์ใบเสร็จ
+                <strong>ขายของ:</strong> QT → ส่งลูกค้า → แปลง IV → รับเงิน → สร้าง RC → พิมพ์ใบเสร็จ
               </List.Item>
               <List.Item>
-                <strong>ยืมอุปกรณ์:</strong> สร้าง EL → พิมพ์ต้นฉบับ → ลูกค้าเซ็น + เขียนสายเพิ่ม → เก็บสำเนา
+                <strong>เช่ารายเดือน:</strong> สร้างสัญญา → ระบบออก IV ร่างทุกเดือน → ตรวจส่ง → รับเงิน → RC
+              </List.Item>
+              <List.Item>
+                <strong>ยืมอุปกรณ์:</strong> สร้าง EL → พิมพ์ต้นฉบับ → ลูกค้าเซ็น + เขียนเพิ่มเติม → เก็บสำเนา
               </List.Item>
               <List.Item>
                 <strong>รับของ:</strong> สร้าง GR → พิมพ์ → เซ็นรับ
