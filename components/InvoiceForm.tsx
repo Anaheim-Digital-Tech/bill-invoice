@@ -10,7 +10,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import {
   IconPlus, IconTrash, IconDeviceFloppy, IconPrinter,
-  IconArrowLeft, IconAddressBook, IconUserPlus, IconLink,
+  IconArrowLeft, IconAddressBook, IconUserPlus, IconLink, IconFileInvoice,
 } from '@tabler/icons-react';
 import type { Contact } from '../lib/contacts';
 import { getAllContacts, saveContact } from '../lib/contacts';
@@ -20,7 +20,7 @@ import {
   STATUS_BY_TYPE, DUE_DATE_LABEL, PAYMENT_METHODS, COMPANY,
   isOperationalDocType,
 } from '../lib/constants';
-import { saveDoc, generateDocNumber } from '../lib/store';
+import { saveDoc, generateDocNumber, getReceiptForInvoice, createReceiptFromInvoiceId } from '../lib/store';
 import { calcTotals, formatMoney, uid, todayISO, addDaysISO } from '../lib/utils';
 import { ContactPickerModal } from './ContactPickerModal';
 
@@ -57,6 +57,14 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
   // Contact picker
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [linkedReceipt, setLinkedReceipt] = useState<InvoiceDoc | null>(null);
+  const [creatingReceipt, setCreatingReceipt] = useState(false);
+
+  useEffect(() => {
+    if (initial?.id && initial.docType === 'invoice') {
+      getReceiptForInvoice(initial.id).then(setLinkedReceipt);
+    }
+  }, [initial?.id, initial?.docType]);
 
   useEffect(() => {
     if (contactPickerOpen) getAllContacts().then(setContacts);
@@ -184,6 +192,27 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
     else notifications.show({ title: 'บันทึกไม่สำเร็จ', message: 'กรุณาลองใหม่', color: 'red' });
   };
 
+  const handleCreateReceipt = async () => {
+    if (!initial?.id) return;
+    setCreatingReceipt(true);
+    try {
+      const receipt = await createReceiptFromInvoiceId(initial.id);
+      if (receipt) {
+        setLinkedReceipt(receipt);
+        notifications.show({
+          title: 'สร้างใบเสร็จแล้ว',
+          message: receipt.docNumber,
+          color: 'green',
+        });
+        router.push(`/invoices/${receipt.id}`);
+      } else {
+        notifications.show({ title: 'สร้างใบเสร็จไม่สำเร็จ', message: '', color: 'red' });
+      }
+    } finally {
+      setCreatingReceipt(false);
+    }
+  };
+
   return (
     <Stack gap="md">
       {/* Top actions */}
@@ -192,6 +221,30 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
           กลับ
         </Button>
         <Group gap="xs" wrap="nowrap">
+          {docType === 'invoice' && initial?.id && (
+            linkedReceipt ? (
+              <Button
+                variant="light"
+                color="teal"
+                leftSection={<IconFileInvoice size={16} />}
+                size="sm"
+                onClick={() => router.push(`/invoices/${linkedReceipt.id}`)}
+              >
+                ใบเสร็จ {linkedReceipt.docNumber}
+              </Button>
+            ) : (
+              <Button
+                variant="light"
+                color="teal"
+                leftSection={<IconFileInvoice size={16} />}
+                size="sm"
+                loading={creatingReceipt}
+                onClick={handleCreateReceipt}
+              >
+                สร้างใบเสร็จจากบิลนี้
+              </Button>
+            )
+          )}
           <Button variant="outline" leftSection={<IconDeviceFloppy size={16} />} onClick={handleSave} size="sm">
             บันทึก
           </Button>

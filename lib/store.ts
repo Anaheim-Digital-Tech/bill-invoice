@@ -65,6 +65,29 @@ export async function deleteDoc(id: string): Promise<boolean> {
   }
 }
 
+export async function getReceiptForInvoice(invoiceId: string): Promise<InvoiceDoc | null> {
+  try {
+    const res = await fetch(`${BASE}/${invoiceId}/receipt`, { cache: 'no-store' });
+    checkAuth(res);
+    if (res.status === 404) return null;
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function createReceiptFromInvoiceId(invoiceId: string): Promise<InvoiceDoc | null> {
+  try {
+    const res = await fetch(`${BASE}/${invoiceId}/receipt`, { method: 'POST' });
+    checkAuth(res);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function generateDocNumber(docType: DocType): Promise<string> {
   const prefix = DOC_TYPE_PREFIX[docType];
   const now = new Date();
