@@ -15,7 +15,7 @@ import {
   IconChevronDown, IconChevronUp, IconArrowRight,
 } from '@tabler/icons-react';
 import type { InvoiceDoc, DocStatus, DocType } from '../lib/types';
-import { getAllDocs, deleteDoc, saveDoc } from '../lib/store';
+import { getAllDocs, deleteDoc, saveDoc, createReceiptFromInvoiceId } from '../lib/store';
 import {
   DOC_TYPE_LABELS, DOC_STATUS_LABELS, DOC_STATUS_COLORS, DOC_TYPE_PREFIX, COMPANY,
   STATUS_BY_TYPE, isOperationalDocType,
@@ -92,7 +92,30 @@ export default function HomePage() {
     }
   };
 
+  const handleCreateReceipt = async (doc: InvoiceDoc) => {
+    const receipt = await createReceiptFromInvoiceId(doc.id);
+    if (receipt) {
+      reload();
+      router.push(`/invoices/${receipt.id}`);
+      notifications.show({
+        title: 'สร้างใบเสร็จแล้ว',
+        message: `${receipt.docNumber} จาก ${doc.docNumber}`,
+        color: 'teal',
+      });
+    } else {
+      notifications.show({
+        title: 'สร้างใบเสร็จไม่สำเร็จ',
+        message: 'กรุณาลองใหม่ หรือเปิดหน้าแก้ไข IV',
+        color: 'red',
+      });
+    }
+  };
+
   const handleConvert = async (doc: InvoiceDoc) => {
+    if (doc.docType === 'invoice') {
+      await handleCreateReceipt(doc);
+      return;
+    }
     const nextType = NEXT_DOC_TYPE[doc.docType];
     if (!nextType) return;
     const now = new Date();
@@ -118,6 +141,8 @@ export default function HomePage() {
       reload();
       router.push(`/invoices/${newDoc.id}`);
       notifications.show({ title: 'สร้างเอกสารใหม่แล้ว', message: `${newDoc.docNumber} อ้างอิงจาก ${doc.docNumber}`, color: 'teal' });
+    } else {
+      notifications.show({ title: 'สร้างเอกสารไม่สำเร็จ', message: 'กรุณาลองใหม่', color: 'red' });
     }
   };
 
@@ -393,7 +418,15 @@ export default function HomePage() {
                                 <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => router.push(`/invoices/${doc.id}`)}>แก้ไข</Menu.Item>
                                 <Menu.Item leftSection={<IconPrinter size={14} />} onClick={() => router.push(`/invoices/${doc.id}/print`)}>พิมพ์ / PDF</Menu.Item>
                                 <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => handleDuplicate(doc)}>คัดลอก</Menu.Item>
-                                {NEXT_DOC_TYPE[doc.docType] && (
+                                {doc.docType === 'invoice' ? (
+                                  <Menu.Item
+                                    leftSection={<IconArrowRight size={14} />}
+                                    color="teal"
+                                    onClick={() => handleCreateReceipt(doc)}
+                                  >
+                                    สร้างใบเสร็จจากบิลนี้
+                                  </Menu.Item>
+                                ) : NEXT_DOC_TYPE[doc.docType] ? (
                                   <Menu.Item
                                     leftSection={<IconArrowRight size={14} />}
                                     color="teal"
@@ -401,7 +434,7 @@ export default function HomePage() {
                                   >
                                     สร้าง {DOC_TYPE_LABELS[NEXT_DOC_TYPE[doc.docType]!]} จากนี้
                                   </Menu.Item>
-                                )}
+                                ) : null}
                                 {!isOperationalDocType(doc.docType) && (
                                   <>
                                     <Menu.Divider />
