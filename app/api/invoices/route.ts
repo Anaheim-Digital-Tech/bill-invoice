@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '../../../lib/db';
 import { InvoiceModel } from '../../../models/Invoice';
 import { ARCHIVE_AFTER_YEARS, OPERATIONAL_DOC_TYPES } from '../../../lib/constants';
+import { handleInvoiceStatusChange } from '../../../lib/billingEngine';
+import type { InvoiceDoc } from '../../../lib/types';
 
 function archiveCutoffISO(): string {
   const d = new Date();
@@ -46,11 +48,19 @@ export async function POST(req: Request) {
   }
 
   const existing = await InvoiceModel.findOne({ id: body.id });
+  const previousStatus = existing?.status as string | undefined;
+
   if (existing) {
     body.docNumber = existing.docNumber;
     await InvoiceModel.updateOne({ id: body.id }, { $set: body });
   } else {
     await InvoiceModel.create(body);
   }
-  return NextResponse.json({ ok: true });
+
+  const receipt = await handleInvoiceStatusChange(
+    body as InvoiceDoc,
+    previousStatus
+  );
+
+  return NextResponse.json({ ok: true, ...receipt });
 }

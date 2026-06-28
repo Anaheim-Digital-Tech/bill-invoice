@@ -85,8 +85,8 @@ export default function HomePage() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    const ok = await saveDoc(newDoc);
-    if (ok) {
+    const result = await saveDoc(newDoc);
+    if (result.ok) {
       reload();
       notifications.show({ title: 'คัดลอกเอกสารแล้ว', message: newDoc.docNumber, color: 'blue' });
     }
@@ -111,8 +111,8 @@ export default function HomePage() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    const ok = await saveDoc(newDoc);
-    if (ok) {
+    const result = await saveDoc(newDoc);
+    if (result.ok) {
       reload();
       router.push(`/invoices/${newDoc.id}`);
       notifications.show({ title: 'สร้างเอกสารใหม่แล้ว', message: `${newDoc.docNumber} อ้างอิงจาก ${doc.docNumber}`, color: 'teal' });
@@ -120,12 +120,15 @@ export default function HomePage() {
   };
 
   const handleStatusChange = async (doc: InvoiceDoc, status: DocStatus) => {
-    const ok = await saveDoc({ ...doc, status });
-    if (ok) {
+    const result = await saveDoc({ ...doc, status });
+    if (result.ok) {
       reload();
+      const msg = result.receiptDocNumber
+        ? `${doc.docNumber} → ${DOC_STATUS_LABELS[status]} (สร้าง RC ${result.receiptDocNumber})`
+        : `${doc.docNumber} → ${DOC_STATUS_LABELS[status]}`;
       notifications.show({
         title: 'เปลี่ยนสถานะแล้ว',
-        message: `${doc.docNumber} → ${DOC_STATUS_LABELS[status]}`,
+        message: msg,
         color: 'green',
       });
     }

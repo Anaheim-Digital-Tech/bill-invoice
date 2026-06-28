@@ -32,25 +32,7 @@ export default function SubscriptionsPage() {
     setSubs(data);
   }, []);
 
-  const runAutoBilling = useCallback(async () => {
-    try {
-      const result = await generateBilling();
-      if (result.generated > 0) {
-        notifications.show({
-          title: `ออกบิลอัตโนมัติ ${result.generated} รายการ`,
-          message: result.invoices.map((i) => i.docNumber).join(', '),
-          color: 'green',
-        });
-        await reload();
-      }
-    } catch {
-      /* silent on auto-run */
-    }
-  }, [reload]);
-
-  useEffect(() => {
-    reload().then(() => runAutoBilling());
-  }, [reload, runAutoBilling]);
+  useEffect(() => { reload(); }, [reload]);
 
   const filtered = subs.filter((s) => {
     const q = search.toLowerCase();
@@ -68,7 +50,7 @@ export default function SubscriptionsPage() {
     try {
       const result = await generateBilling({ force: true, period: currentPeriod });
       if (result.generated === 0) {
-        notifications.show({ title: 'ไม่มีบิลที่ต้องออก', message: 'ออกครบงวดนี้แล้ว', color: 'blue' });
+        notifications.show({ title: 'ไม่มีงวดที่ต้องออก', message: 'ออกครบแล้วหรือยังไม่ถึงวันตัดรอบ', color: 'blue' });
       } else {
         notifications.show({
           title: `ออกบิล ${result.generated} รายการ`,
@@ -92,7 +74,9 @@ export default function SubscriptionsPage() {
           <Group justify="space-between">
             <div>
               <Title order={2}>สัญญาเช่ารายเดือน</Title>
-              <Text c="dimmed" size="sm">ออกใบแจ้งหนี้อัตโนมัติตามรอบบิล — งวดปัจจุบัน {thaiPeriodLabel(currentPeriod)}</Text>
+              <Text c="dimmed" size="sm">
+                ออกบิลอัตโนมัติผ่าน cron รายวัน — งวดปัจจุบัน {thaiPeriodLabel(currentPeriod)}
+              </Text>
             </div>
             <Group>
               <Button
@@ -101,7 +85,7 @@ export default function SubscriptionsPage() {
                 onClick={handleGenerateAll}
                 loading={generating}
               >
-                ออกบิลงวดนี้ทั้งหมด
+                ออกบิลงวดที่ค้าง
               </Button>
               <Button
                 leftSection={<IconPlus size={16} />}

@@ -13,7 +13,7 @@ import {
 } from '../../../lib/subscriptions';
 import { DOC_STATUS_LABELS, DOC_STATUS_COLORS } from '../../../lib/constants';
 import { formatDate, formatMoney, calcTotals } from '../../../lib/utils';
-import { thaiPeriodLabel, periodFromDate } from '../../../lib/subscriptionBilling';
+import { thaiPeriodLabel } from '../../../lib/subscriptionBilling';
 import { SubscriptionForm } from '../../../components/SubscriptionForm';
 import { AppHeader } from '../../../components/AppHeader';
 
@@ -43,14 +43,15 @@ export default function SubscriptionDetailPage() {
     try {
       const result = await generateBilling({ subscriptionId: id, force: true });
       if (result.generated > 0) {
+        const nums = result.invoices.map((i) => i.docNumber).join(', ');
         notifications.show({
-          title: `ออกบิล ${result.invoices[0].docNumber}`,
-          message: '',
+          title: `ออกบิล ${result.generated} รายการ (ร่าง)`,
+          message: nums,
           color: 'green',
         });
         await reload();
       } else {
-        notifications.show({ title: 'ออกบิลงวดนี้แล้ว', message: '', color: 'blue' });
+        notifications.show({ title: 'ไม่มีงวดที่ต้องออก', message: '', color: 'blue' });
       }
     } catch {
       notifications.show({ title: 'ออกบิลไม่สำเร็จ', message: '', color: 'red' });
@@ -77,8 +78,6 @@ export default function SubscriptionDetailPage() {
     );
   }
 
-  const currentPeriod = periodFromDate();
-  const billedThisPeriod = sub.lastBilledPeriod === currentPeriod;
 
   return (
     <>
@@ -94,9 +93,9 @@ export default function SubscriptionDetailPage() {
               leftSection={<IconPlayerPlay size={16} />}
               onClick={handleGenerate}
               loading={generating}
-              disabled={sub.status !== 'active' || billedThisPeriod}
+              disabled={sub.status !== 'active'}
             >
-              {billedThisPeriod ? 'ออกบิลงวดนี้แล้ว' : `ออกบิล ${thaiPeriodLabel(currentPeriod)}`}
+              ออกบิลงวดที่ค้าง
             </Button>
           </Group>
 

@@ -47,6 +47,10 @@ export interface InvoiceDoc {
   loanEndDate?: string;
   subscriptionId?: string;
   billingPeriod?: string;
+  proRataDays?: number;
+  proRataTotalDays?: number;
+  withholdingTaxPercent?: number;
+  eTaxStatus?: 'none' | 'ready' | 'submitted';
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +78,9 @@ export interface Subscription {
   status: SubscriptionStatus;
   lastBilledPeriod?: string;
   notes: string;
+  withholdingTaxPercent: number;
+  isRentalIncome: boolean;
+  autoCreateReceipt: boolean;
   createdAt: string;
   updatedAt: string;
 }

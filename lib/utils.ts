@@ -44,6 +44,18 @@ export function calcTotals(
   return { subtotal, discount, beforeTax, tax, total };
 }
 
+export function calcTotalsWithWht(
+  items: LineItem[],
+  discountPercent: number,
+  taxMode: TaxMode,
+  withholdingTaxPercent = 0
+) {
+  const base = calcTotals(items, discountPercent, taxMode);
+  const withholdingTax = Math.round(base.beforeTax * (withholdingTaxPercent / 100) * 100) / 100;
+  const netPayable = Math.round((base.total - withholdingTax) * 100) / 100;
+  return { ...base, withholdingTax, netPayable };
+}
+
 export function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }

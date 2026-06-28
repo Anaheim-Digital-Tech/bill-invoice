@@ -6,6 +6,11 @@ const PUBLIC_PATHS = ['/signin', '/api/auth/signin'];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Cron uses Bearer token in route handler
+  if (pathname.startsWith('/api/cron/')) {
+    return NextResponse.next();
+  }
+
   // Allow public paths and static assets
   if (
     PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||

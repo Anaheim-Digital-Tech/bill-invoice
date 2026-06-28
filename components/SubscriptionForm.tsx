@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Stack, Grid, TextInput, Textarea, Select, NumberInput,
-  Button, Group, Text, Divider, Paper, Title, SimpleGrid, Box,
+  Button, Group, Text, Divider, Paper, Title, SimpleGrid, Box, Switch,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconDeviceFloppy, IconArrowLeft, IconAddressBook } from '@tabler/icons-react';
 import type { Contact } from '../lib/contacts';
 import { getAllContacts } from '../lib/contacts';
 import type { Subscription, SubscriptionStatus, TaxMode } from '../lib/types';
-import { TAX_MODE_LABELS, SUBSCRIPTION_STATUS_LABELS } from '../lib/constants';
+import { TAX_MODE_LABELS, SUBSCRIPTION_STATUS_LABELS, WHT_RATE_OPTIONS } from '../lib/constants';
 import { saveSubscription } from '../lib/subscriptions';
 import { formatMoney, uid, todayISO } from '../lib/utils';
 import { ContactPickerModal } from './ContactPickerModal';
@@ -40,13 +40,16 @@ const defaultSub = (): Subscription => ({
   startDate: todayISO(),
   status: 'active',
   notes: '',
+  withholdingTaxPercent: 0,
+  isRentalIncome: false,
+  autoCreateReceipt: true,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });
 
 export function SubscriptionForm({ initial, isNew = false }: Props) {
   const router = useRouter();
-  const [sub, setSub] = useState<Subscription>(initial ?? defaultSub());
+  const [sub, setSub] = useState<Subscription>(() => ({ ...defaultSub(), ...initial }));
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [saving, setSaving] = useState(false);
@@ -249,6 +252,40 @@ export function SubscriptionForm({ initial, isNew = false }: Props) {
             value={sub.status}
             onChange={(v) => set('status', (v ?? 'active') as SubscriptionStatus)}
           />
+
+          <Divider label="ภาษี / การชำระ" labelPosition="left" />
+
+          <SimpleGrid cols={{ base: 1, sm: 2 }}>
+            <Switch
+              label="รายได้ค่าเช่า (แนะนำหัก 5%)"
+              checked={sub.isRentalIncome}
+              onChange={(e) => {
+                const on = e.currentTarget.checked;
+                setSub((p) => ({
+                  ...p,
+                  isRentalIncome: on,
+                  withholdingTaxPercent: on ? 5 : p.withholdingTaxPercent,
+                  updatedAt: new Date().toISOString(),
+                }));
+              }}
+            />
+            <Select
+              label="หัก ณ ที่จ่าย"
+              data={WHT_RATE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              value={String(sub.withholdingTaxPercent)}
+              onChange={(v) => set('withholdingTaxPercent', Number(v) || 0)}
+            />
+          </SimpleGrid>
+
+          <Switch
+            label="สร้างใบเสร็จ (RC) อัตโนมัติเมื่อ IV ชำระแล้ว"
+            checked={sub.autoCreateReceipt}
+            onChange={(e) => set('autoCreateReceipt', e.currentTarget.checked)}
+          />
+
+          <Text size="xs" c="dimmed">
+            บิลจากสัญญาจะออกเป็นร่าง (draft) — ตรวจแล้วเปลี่ยนเป็น sent ก่อนส่งลูกค้า
+          </Text>
 
           <Textarea
             label="หมายเหตุ (แสดงในใบแจ้งหนี้)"

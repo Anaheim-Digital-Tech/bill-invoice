@@ -34,7 +34,12 @@ export async function getDoc(id: string): Promise<InvoiceDoc | null> {
   }
 }
 
-export async function saveDoc(doc: InvoiceDoc): Promise<boolean> {
+export interface SaveDocResult {
+  ok: boolean;
+  receiptDocNumber?: string;
+}
+
+export async function saveDoc(doc: InvoiceDoc): Promise<SaveDocResult> {
   try {
     const res = await fetch(BASE, {
       method: 'POST',
@@ -42,9 +47,11 @@ export async function saveDoc(doc: InvoiceDoc): Promise<boolean> {
       body: JSON.stringify(doc),
     });
     checkAuth(res);
-    return res.ok;
+    if (!res.ok) return { ok: false };
+    const data = await res.json().catch(() => ({}));
+    return { ok: true, receiptDocNumber: data.receiptDocNumber as string | undefined };
   } catch {
-    return false;
+    return { ok: false };
   }
 }
 

@@ -2,7 +2,7 @@
 
 import type { InvoiceDoc } from '../lib/types';
 import { COMPANY, DOC_TYPE_LABELS, DUE_DATE_LABEL, PAYMENT_METHODS, isOperationalDocType, EQUIPMENT_LOAN_DEFAULT_TERMS } from '../lib/constants';
-import { calcTotals, formatDate, formatMoney } from '../lib/utils';
+import { calcTotals, formatDate, formatMoney, calcTotalsWithWht } from '../lib/utils';
 import { bahtText } from '../lib/thaiText';
 
 interface Props {
@@ -44,7 +44,8 @@ const td = (content: React.ReactNode, style?: React.CSSProperties): React.ReactN
 );
 
 export function PrintView({ doc, copy = false }: Props) {
-  const totals = calcTotals(doc.items, doc.discountPercent, doc.taxMode);
+  const whtPercent = doc.withholdingTaxPercent ?? 0;
+  const totals = calcTotalsWithWht(doc.items, doc.discountPercent, doc.taxMode, whtPercent);
   const PAD_ROWS = Math.max(0, 5 - doc.items.length);
   const isOperational = isOperationalDocType(doc.docType);
   const isEquipmentCheck = doc.docType === 'equipmentcheck';
@@ -606,6 +607,31 @@ export function PrintView({ doc, copy = false }: Props) {
                       </tr>
                     </>
                   )}
+                  {whtPercent > 0 && (
+                    <tr>
+                      <td
+                        style={{
+                          border: BORDER,
+                          padding: '5px 10px',
+                          backgroundColor: '#f5f5f5',
+                          fontWeight: 600,
+                          color: '#c0392b',
+                        }}
+                      >
+                        หัก ณ ที่จ่าย {whtPercent}%
+                      </td>
+                      <td
+                        style={{
+                          border: BORDER,
+                          padding: '5px 10px',
+                          textAlign: 'right',
+                          color: '#c0392b',
+                        }}
+                      >
+                        -{formatMoney(totals.withholdingTax)}
+                      </td>
+                    </tr>
+                  )}
                   <tr style={{ backgroundColor: '#1a1a2e', color: '#fff' }}>
                     <td
                       style={{
@@ -615,7 +641,7 @@ export function PrintView({ doc, copy = false }: Props) {
                         fontSize: '12pt',
                       }}
                     >
-                      ยอดสุทธิ (บาท)
+                      {whtPercent > 0 ? 'ยอดชำระสุทธิ (บาท)' : 'ยอดสุทธิ (บาท)'}
                     </td>
                     <td
                       style={{
@@ -626,7 +652,7 @@ export function PrintView({ doc, copy = false }: Props) {
                         fontSize: '13pt',
                       }}
                     >
-                      {formatMoney(totals.total)}
+                      {formatMoney(whtPercent > 0 ? totals.netPayable : totals.total)}
                     </td>
                   </tr>
                   <tr>
@@ -641,7 +667,7 @@ export function PrintView({ doc, copy = false }: Props) {
                         textAlign: 'center',
                       }}
                     >
-                      ({bahtText(totals.total)})
+                      ({bahtText(whtPercent > 0 ? totals.netPayable : totals.total)})
                     </td>
                   </tr>
                 </tbody>

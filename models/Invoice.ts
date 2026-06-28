@@ -64,6 +64,10 @@ const InvoiceSchema = new Schema(
     loanEndDate: String,
     subscriptionId: String,
     billingPeriod: String,
+    proRataDays: Number,
+    proRataTotalDays: Number,
+    withholdingTaxPercent: Number,
+    eTaxStatus: { type: String, enum: ['none', 'ready', 'submitted'], default: 'none' },
   },
   { timestamps: true }
 );

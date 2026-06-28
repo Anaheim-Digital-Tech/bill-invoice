@@ -24,6 +24,9 @@ const SubscriptionSchema = new Schema(
     status: { type: String, enum: SUBSCRIPTION_STATUSES, default: 'active' },
     lastBilledPeriod: String,
     notes: String,
+    withholdingTaxPercent: { type: Number, default: 0 },
+    isRentalIncome: { type: Boolean, default: false },
+    autoCreateReceipt: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

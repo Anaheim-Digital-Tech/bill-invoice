@@ -123,6 +123,21 @@ export const SUBSCRIPTION_STATUS_COLORS = {
   cancelled: 'gray',
 } as const;
 
+/** อัตราหัก ณ ที่จ่ายค่าเช่า (ตามหลักภาษีไทย) */
+export const WHT_RATE_OPTIONS = [
+  { value: '0', label: 'ไม่หัก' },
+  { value: '1', label: '1%' },
+  { value: '2', label: '2%' },
+  { value: '3', label: '3% (บุคคลธรรมดา)' },
+  { value: '5', label: '5% (นิติบุคคล)' },
+] as const;
+
+export const ETAX_STATUS_LABELS = {
+  none: '—',
+  ready: 'พร้อมส่ง e-Tax',
+  submitted: 'ส่ง e-Tax แล้ว',
+} as const;
+
 export const EQUIPMENT_LOAN_DEFAULT_TERMS = [
   'ผู้รับมอบรับทราบและยอมรับสภาพอุปกรณ์ตามที่ระบุในเอกสารนี้ รวมถึงรายการที่เขียนเพิ่มเติมด้วยลายมือ',
   'ผู้รับมอบตกลงใช้งานอุปกรณ์เพื่อวัตถุประสงค์ตามที่ตกลงเท่านั้น ห้ามนำไปให้บุคคลอื่นใช้งานหรือจำหน่ายโดยไม่ได้รับอนุญาต',

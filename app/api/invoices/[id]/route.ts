@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '../../../../lib/db';
 import { InvoiceModel } from '../../../../models/Invoice';
 import { OPERATIONAL_DOC_TYPES } from '../../../../lib/constants';
+import { handleInvoiceStatusChange } from '../../../../lib/billingEngine';
+import type { InvoiceDoc } from '../../../../lib/types';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   await connectDB();
@@ -16,11 +18,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const body = await req.json();
   const existing = await InvoiceModel.findOne({ id });
+  const previousStatus = existing?.status as string | undefined;
+
   if (existing) {
     body.docNumber = existing.docNumber;
   }
   await InvoiceModel.updateOne({ id }, { $set: body }, { upsert: true });
-  return NextResponse.json({ ok: true });
+
+  const receipt = await handleInvoiceStatusChange(body as InvoiceDoc, previousStatus);
+
+  return NextResponse.json({ ok: true, ...receipt });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -167,8 +167,8 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
 
   const handleSave = async () => {
     if (!validate()) return;
-    const ok = await saveDoc(buildDoc());
-    if (ok) {
+    const result = await saveDoc(buildDoc());
+    if (result.ok) {
       notifications.show({ title: 'บันทึกสำเร็จ', message: `${DOC_TYPE_LABELS[docType]} ${docNumber}`, color: 'green' });
       router.push('/');
     } else {
@@ -179,8 +179,8 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
   const handleSaveAndPrint = async () => {
     if (!validate()) return;
     const doc = buildDoc();
-    const ok = await saveDoc(doc);
-    if (ok) router.push(`/invoices/${doc.id}/print`);
+    const result = await saveDoc(doc);
+    if (result.ok) router.push(`/invoices/${doc.id}/print`);
     else notifications.show({ title: 'บันทึกไม่สำเร็จ', message: 'กรุณาลองใหม่', color: 'red' });
   };
 
