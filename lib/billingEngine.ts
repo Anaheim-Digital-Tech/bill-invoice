@@ -104,23 +104,29 @@ export async function createReceiptFromInvoice(
     refDocId: invoice.id,
     docType: 'receipt',
   }).lean();
-  if (existing) return existing as InvoiceDoc;
+
+  if (existing) {
+    await markInvoicePaid(invoice.id, existing.paymentMethod ?? invoice.paymentMethod);
+    return existing as InvoiceDoc;
+  }
 
   const raw = invoice as InvoiceDoc & { _id?: unknown; __v?: unknown };
   const { _id: _mongoId, __v: _ver, ...base } = raw;
 
   const docNumber = await generateDocNumber('receipt');
   const now = new Date().toISOString();
+  const paymentMethod = invoice.paymentMethod ?? 'transfer';
+  const paymentDate = todayISO();
   const receipt: InvoiceDoc = {
     ...(base as InvoiceDoc),
     id: uid(),
     docType: 'receipt',
     docNumber,
-    issueDate: todayISO(),
-    dueDate: todayISO(),
+    issueDate: paymentDate,
+    dueDate: paymentDate,
     status: 'paid',
-    paymentMethod: invoice.paymentMethod ?? 'transfer',
-    paymentDate: todayISO(),
+    paymentMethod,
+    paymentDate,
     refDocId: invoice.id,
     refDocNumber: invoice.docNumber,
     createdAt: now,
@@ -129,11 +135,25 @@ export async function createReceiptFromInvoice(
 
   try {
     await InvoiceModel.create(receipt);
+    await markInvoicePaid(invoice.id, paymentMethod);
     return receipt;
   } catch (err) {
     console.error('createReceiptFromInvoice failed:', err);
     return null;
   }
+}
+
+async function markInvoicePaid(invoiceId: string, paymentMethod?: string): Promise<void> {
+  await InvoiceModel.updateOne(
+    { id: invoiceId, docType: 'invoice' },
+    {
+      $set: {
+        status: 'paid',
+        paymentDate: todayISO(),
+        paymentMethod: paymentMethod ?? 'transfer',
+      },
+    }
+  );
 }
 
 export async function handleInvoiceStatusChange(

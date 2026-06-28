@@ -104,7 +104,7 @@ export default function GuidePage() {
                   <List size="sm" spacing="xs">
                     <List.Item>สร้าง QT → สถานะ <Badge size="xs" color="gray">ร่าง</Badge> → <Badge size="xs" color="blue">ส่งแล้ว</Badge></List.Item>
                     <List.Item>เมนู ⋮ → <strong>สร้างใบแจ้งหนี้จากนี้</strong> (เลขที่ใหม่ + อ้างอิงเอกสารเดิม)</List.Item>
-                    <List.Item>ลูกค้าชำระเงิน → สร้าง RC ได้ 3 ทาง: ปุ่ม <strong>สร้างใบเสร็จจากบิลนี้</strong> ในหน้า IV · เมนู ⋮ บน Dashboard · เปลี่ยนสถานะ IV เป็น <Badge size="xs" color="green">ชำระแล้ว</Badge> (บิลจากสัญญาเช่าสร้าง RC อัตโนมัติถ้าเปิดไว้)</List.Item>
+                    <List.Item>ลูกค้าชำระเงิน → สร้าง RC ได้ 3 ทาง: ปุ่ม <strong>สร้างใบเสร็จจากบิลนี้</strong> ในหน้า IV · เมนู ⋮ บน Dashboard · เปลี่ยนสถานะ IV เป็น <Badge size="xs" color="green">ชำระแล้ว</Badge> (บิลจากสัญญาเช่าสร้าง RC อัตโนมัติถ้าเปิดไว้) — <strong>IV จะเปลี่ยนเป็นชำระแล้วอัตโนมัติเมื่อสร้าง RC</strong></List.Item>
                   </List>
                 </Stack>
               </Accordion.Panel>
