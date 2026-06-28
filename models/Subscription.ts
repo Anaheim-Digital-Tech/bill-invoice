@@ -27,6 +27,7 @@ const SubscriptionSchema = new Schema(
     withholdingTaxPercent: { type: Number, default: 0 },
     isRentalIncome: { type: Boolean, default: false },
     autoCreateReceipt: { type: Boolean, default: true },
+    proRataEnabled: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

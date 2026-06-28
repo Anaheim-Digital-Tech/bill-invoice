@@ -81,6 +81,12 @@ export function proRataForPeriod(
   return { factor: days / totalDays, days, totalDays };
 }
 
+export function isBillablePeriod(sub: Subscription, period: string): boolean {
+  if (!isPeriodInContract(sub, period)) return false;
+  if (sub.proRataEnabled) return proRataForPeriod(sub, period).days > 0;
+  return true;
+}
+
 export function periodsDue(
   sub: Subscription,
   today = new Date(),
@@ -98,9 +104,8 @@ export function periodsDue(
   const result: string[] = [];
   while (comparePeriod(cursor, current) <= 0) {
     if (isPeriodInContract(sub, cursor)) {
-      const pr = proRataForPeriod(sub, cursor);
       const due = periodBillingDueDate(cursor, sub.billingDay);
-      if (pr.days > 0 && (force || todayStr >= due)) {
+      if (isBillablePeriod(sub, cursor) && (force || todayStr >= due)) {
         result.push(cursor);
       }
     }
@@ -116,13 +121,15 @@ export function buildInvoiceFromSubscription(
 ): InvoiceDoc {
   const periodLabel = thaiPeriodLabel(period);
   const pr = proRataForPeriod(sub, period);
-  const effectivePrice = Math.round(sub.monthlyAmount * pr.factor * 100) / 100;
+  const useProRata = sub.proRataEnabled === true;
+  const factor = useProRata ? pr.factor : 1;
+  const effectivePrice = Math.round(sub.monthlyAmount * factor * 100) / 100;
 
   let description = sub.description.includes('{period}')
     ? sub.description.replace('{period}', periodLabel)
     : `${sub.description} (${periodLabel})`;
 
-  if (pr.factor < 1) {
+  if (useProRata && pr.factor < 1) {
     description += ` (${pr.days}/${pr.totalDays} วัน)`;
   }
 
@@ -158,8 +165,8 @@ export function buildInvoiceFromSubscription(
       : `งวด: ${periodLabel}`,
     subscriptionId: sub.id,
     billingPeriod: period,
-    proRataDays: pr.days,
-    proRataTotalDays: pr.totalDays,
+    proRataDays: useProRata ? pr.days : undefined,
+    proRataTotalDays: useProRata ? pr.totalDays : undefined,
     withholdingTaxPercent: whtPercent,
     eTaxStatus: whtPercent > 0 || sub.isRentalIncome ? 'ready' : 'none',
     createdAt: now,

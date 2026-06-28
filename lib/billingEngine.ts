@@ -6,6 +6,7 @@ import {
   comparePeriod,
   periodsDue,
   proRataForPeriod,
+  isBillablePeriod,
 } from './billingCore';
 import { InvoiceModel } from '../models/Invoice';
 import { SubscriptionModel } from '../models/Subscription';
@@ -76,7 +77,7 @@ export async function processBilling(opts?: {
       });
       if (existing) continue;
 
-      if (proRataForPeriod(sub, period).days <= 0) continue;
+      if (!isBillablePeriod(sub, period)) continue;
 
       const docNumber = await generateDocNumber('invoice');
       const invoice = buildInvoiceFromSubscription(sub, period, docNumber);

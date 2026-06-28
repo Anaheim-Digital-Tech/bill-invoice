@@ -81,6 +81,7 @@ export interface Subscription {
   withholdingTaxPercent: number;
   isRentalIncome: boolean;
   autoCreateReceipt: boolean;
+  proRataEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }

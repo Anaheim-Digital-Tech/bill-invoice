@@ -43,6 +43,7 @@ const defaultSub = (): Subscription => ({
   withholdingTaxPercent: 0,
   isRentalIncome: false,
   autoCreateReceipt: true,
+  proRataEnabled: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });
@@ -281,6 +282,13 @@ export function SubscriptionForm({ initial, isNew = false }: Props) {
             label="สร้างใบเสร็จ (RC) อัตโนมัติเมื่อ IV ชำระแล้ว"
             checked={sub.autoCreateReceipt}
             onChange={(e) => set('autoCreateReceipt', e.currentTarget.checked)}
+          />
+
+          <Switch
+            label="คิดเงินแบบ pro-rata (ตามวันในเดือน)"
+            description="ปิด = คิดเต็มยอดรายเดือนเสมอ | เปิด = เริ่ม/จบกลางเดือนคิดตามวันจริง"
+            checked={sub.proRataEnabled}
+            onChange={(e) => set('proRataEnabled', e.currentTarget.checked)}
           />
 
           <Text size="xs" c="dimmed">
