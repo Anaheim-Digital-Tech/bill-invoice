@@ -10,6 +10,34 @@ import {
 import { InvoiceModel } from '../models/Invoice';
 import { SubscriptionModel } from '../models/Subscription';
 
+export async function syncSubscriptionLastBilledPeriod(subscriptionId: string): Promise<void> {
+  const invoices = await InvoiceModel.find({
+    subscriptionId,
+    docType: 'invoice',
+    billingPeriod: { $exists: true, $nin: [null, ''] },
+  })
+    .select('billingPeriod')
+    .lean();
+
+  if (invoices.length === 0) {
+    await SubscriptionModel.updateOne(
+      { id: subscriptionId },
+      { $unset: { lastBilledPeriod: '' } }
+    );
+    return;
+  }
+
+  const maxPeriod = invoices.reduce((max, inv) => {
+    const p = inv.billingPeriod as string;
+    return comparePeriod(p, max) > 0 ? p : max;
+  }, invoices[0].billingPeriod as string);
+
+  await SubscriptionModel.updateOne(
+    { id: subscriptionId },
+    { $set: { lastBilledPeriod: maxPeriod } }
+  );
+}
+
 export interface BillingResult {
   subscriptionId: string;
   invoiceId: string;
@@ -39,8 +67,6 @@ export async function processBilling(opts?: {
   for (const sub of subs) {
     const periods = singlePeriod ? [singlePeriod] : periodsDue(sub, today, force);
 
-    let latestBilled = sub.lastBilledPeriod;
-
     for (const period of periods) {
       if (!force && sub.status !== 'active') break;
 
@@ -48,12 +74,7 @@ export async function processBilling(opts?: {
         subscriptionId: sub.id,
         billingPeriod: period,
       });
-      if (existing) {
-        if (!latestBilled || comparePeriod(period, latestBilled) > 0) {
-          latestBilled = period;
-        }
-        continue;
-      }
+      if (existing) continue;
 
       if (proRataForPeriod(sub, period).days <= 0) continue;
 
@@ -67,18 +88,9 @@ export async function processBilling(opts?: {
         docNumber: invoice.docNumber,
         period,
       });
-
-      if (!latestBilled || comparePeriod(period, latestBilled) > 0) {
-        latestBilled = period;
-      }
     }
 
-    if (latestBilled && latestBilled !== sub.lastBilledPeriod) {
-      await SubscriptionModel.updateOne(
-        { id: sub.id },
-        { $set: { lastBilledPeriod: latestBilled } }
-      );
-    }
+    await syncSubscriptionLastBilledPeriod(sub.id);
   }
 
   return { generated: generated.length, invoices: generated };

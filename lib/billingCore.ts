@@ -93,7 +93,7 @@ export function periodsDue(
 
   const current = periodFromDate(today);
   const firstPeriod = periodFromDate(new Date(sub.startDate));
-  let cursor = sub.lastBilledPeriod ? nextPeriod(sub.lastBilledPeriod) : firstPeriod;
+  let cursor = firstPeriod;
 
   const result: string[] = [];
   while (comparePeriod(cursor, current) <= 0) {

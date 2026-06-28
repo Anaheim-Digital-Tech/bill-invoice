@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '../../../../lib/db';
 import { InvoiceModel } from '../../../../models/Invoice';
 import { OPERATIONAL_DOC_TYPES } from '../../../../lib/constants';
-import { handleInvoiceStatusChange } from '../../../../lib/billingEngine';
+import { handleInvoiceStatusChange, syncSubscriptionLastBilledPeriod } from '../../../../lib/billingEngine';
 import type { InvoiceDoc } from '../../../../lib/types';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -38,5 +38,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ ok: false, error: 'ไม่สามารถลบเอกสารประเภทนี้ได้' }, { status: 403 });
   }
   await InvoiceModel.deleteOne({ id });
+  if (existing?.subscriptionId) {
+    await syncSubscriptionLastBilledPeriod(existing.subscriptionId);
+  }
   return NextResponse.json({ ok: true });
 }
