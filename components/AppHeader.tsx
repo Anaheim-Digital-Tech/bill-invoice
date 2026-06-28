@@ -5,7 +5,7 @@ import {
   Container, Group, Button, Text, Box, Burger, Drawer, Stack, Divider,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconArrowLeft, IconChartBar, IconPlus, IconLogout, IconBook } from '@tabler/icons-react';
+import { IconArrowLeft, IconChartBar, IconPlus, IconLogout, IconBook, IconRepeat } from '@tabler/icons-react';
 import { COMPANY } from '../lib/constants';
 
 interface Props {
@@ -34,6 +34,15 @@ export function AppHeader({ backTo, backLabel = 'กลับ Dashboard' }: Prop
     </Button>
   ) : (
     <>
+      <Button
+        variant="subtle"
+        color="gray.3"
+        size="sm"
+        leftSection={<IconRepeat size={16} />}
+        onClick={() => { router.push('/subscriptions'); closeMenu(); }}
+      >
+        เช่ารายเดือน
+      </Button>
       <Button
         variant="subtle"
         color="gray.3"

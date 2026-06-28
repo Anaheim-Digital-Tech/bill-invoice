@@ -106,6 +106,23 @@ export const TAX_MODE_LABELS: Record<TaxMode, string> = {
 export const ARCHIVE_AFTER_YEARS = 1;
 
 /** เงื่อนไขมาตรฐานท้ายใบส่งมอบ-รับมอบ (พิมพ์อัตโนมัติ) */
+export const THAI_MONTHS = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+];
+
+export const SUBSCRIPTION_STATUS_LABELS = {
+  active: 'ใช้งาน',
+  paused: 'หยุดชั่วคราว',
+  cancelled: 'ยกเลิก',
+} as const;
+
+export const SUBSCRIPTION_STATUS_COLORS = {
+  active: 'green',
+  paused: 'yellow',
+  cancelled: 'gray',
+} as const;
+
 export const EQUIPMENT_LOAN_DEFAULT_TERMS = [
   'ผู้รับมอบรับทราบและยอมรับสภาพอุปกรณ์ตามที่ระบุในเอกสารนี้ รวมถึงรายการที่เขียนเพิ่มเติมด้วยลายมือ',
   'ผู้รับมอบตกลงใช้งานอุปกรณ์เพื่อวัตถุประสงค์ตามที่ตกลงเท่านั้น ห้ามนำไปให้บุคคลอื่นใช้งานหรือจำหน่ายโดยไม่ได้รับอนุญาต',

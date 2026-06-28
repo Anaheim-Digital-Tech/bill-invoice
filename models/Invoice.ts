@@ -62,6 +62,8 @@ const InvoiceSchema = new Schema(
     handoverReceiverName: String,
     loanStartDate: String,
     loanEndDate: String,
+    subscriptionId: String,
+    billingPeriod: String,
   },
   { timestamps: true }
 );

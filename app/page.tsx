@@ -21,6 +21,7 @@ import {
   STATUS_BY_TYPE, isOperationalDocType,
 } from '../lib/constants';
 import { formatDate, formatMoney, calcTotals, uid, todayISO } from '../lib/utils';
+import { thaiPeriodLabel } from '../lib/subscriptionBilling';
 import { AppHeader } from '../components/AppHeader';
 
 const NEXT_DOC_TYPE: Partial<Record<DocType, DocType>> = {
@@ -345,6 +346,11 @@ export default function HomePage() {
                               <Text fw={600} size="sm">{doc.docNumber}</Text>
                               {doc.isArchive && (
                                 <Badge size="xs" color="gray" variant="outline">เก็บถาวร</Badge>
+                              )}
+                              {doc.billingPeriod && (
+                                <Badge size="xs" color="violet" variant="outline">
+                                  {thaiPeriodLabel(doc.billingPeriod)}
+                                </Badge>
                               )}
                             </Group>
                           </Table.Td>

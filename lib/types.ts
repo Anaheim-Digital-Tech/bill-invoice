@@ -45,6 +45,35 @@ export interface InvoiceDoc {
   handoverReceiverName?: string;
   loanStartDate?: string;
   loanEndDate?: string;
+  subscriptionId?: string;
+  billingPeriod?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SubscriptionStatus = 'active' | 'paused' | 'cancelled';
+
+export interface Subscription {
+  id: string;
+  name: string;
+  customerName: string;
+  customerAddress: string;
+  customerTaxId: string;
+  customerPhone: string;
+  customerEmail: string;
+  description: string;
+  monthlyAmount: number;
+  qty: number;
+  unit: string;
+  taxMode: TaxMode;
+  discountPercent: number;
+  billingDay: number;
+  dueDays: number;
+  startDate: string;
+  endDate?: string;
+  status: SubscriptionStatus;
+  lastBilledPeriod?: string;
+  notes: string;
   createdAt: string;
   updatedAt: string;
 }
