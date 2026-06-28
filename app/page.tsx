@@ -93,7 +93,7 @@ export default function HomePage() {
   };
 
   const handleCreateReceipt = async (doc: InvoiceDoc) => {
-    const receipt = await createReceiptFromInvoiceId(doc.id);
+    const { receipt, error } = await createReceiptFromInvoiceId(doc.id);
     if (receipt) {
       reload();
       router.push(`/invoices/${receipt.id}`);
@@ -105,7 +105,7 @@ export default function HomePage() {
     } else {
       notifications.show({
         title: 'สร้างใบเสร็จไม่สำเร็จ',
-        message: 'กรุณาลองใหม่ หรือเปิดหน้าแก้ไข IV',
+        message: error ?? 'กรุณาลองใหม่',
         color: 'red',
       });
     }

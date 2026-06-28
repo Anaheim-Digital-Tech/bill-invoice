@@ -77,14 +77,19 @@ export async function getReceiptForInvoice(invoiceId: string): Promise<InvoiceDo
   }
 }
 
-export async function createReceiptFromInvoiceId(invoiceId: string): Promise<InvoiceDoc | null> {
+export async function createReceiptFromInvoiceId(
+  invoiceId: string
+): Promise<{ receipt: InvoiceDoc | null; error?: string }> {
   try {
     const res = await fetch(`${BASE}/${invoiceId}/receipt`, { method: 'POST' });
     checkAuth(res);
-    if (!res.ok) return null;
-    return res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { receipt: null, error: (data as { error?: string }).error ?? 'request failed' };
+    }
+    return { receipt: data as InvoiceDoc };
   } catch {
-    return null;
+    return { receipt: null, error: 'network error' };
   }
 }
 

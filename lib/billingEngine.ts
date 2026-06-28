@@ -106,10 +106,13 @@ export async function createReceiptFromInvoice(
   }).lean();
   if (existing) return existing as InvoiceDoc;
 
+  const raw = invoice as InvoiceDoc & { _id?: unknown; __v?: unknown };
+  const { _id: _mongoId, __v: _ver, ...base } = raw;
+
   const docNumber = await generateDocNumber('receipt');
   const now = new Date().toISOString();
   const receipt: InvoiceDoc = {
-    ...invoice,
+    ...(base as InvoiceDoc),
     id: uid(),
     docType: 'receipt',
     docNumber,
@@ -123,8 +126,14 @@ export async function createReceiptFromInvoice(
     createdAt: now,
     updatedAt: now,
   };
-  await InvoiceModel.create(receipt);
-  return receipt;
+
+  try {
+    await InvoiceModel.create(receipt);
+    return receipt;
+  } catch (err) {
+    console.error('createReceiptFromInvoice failed:', err);
+    return null;
+  }
 }
 
 export async function handleInvoiceStatusChange(

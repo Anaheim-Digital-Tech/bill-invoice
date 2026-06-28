@@ -196,7 +196,7 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
     if (!initial?.id) return;
     setCreatingReceipt(true);
     try {
-      const receipt = await createReceiptFromInvoiceId(initial.id);
+      const { receipt, error } = await createReceiptFromInvoiceId(initial.id);
       if (receipt) {
         setLinkedReceipt(receipt);
         notifications.show({
@@ -206,7 +206,11 @@ export function InvoiceForm({ initial, isNew = false }: Props) {
         });
         router.push(`/invoices/${receipt.id}`);
       } else {
-        notifications.show({ title: 'สร้างใบเสร็จไม่สำเร็จ', message: '', color: 'red' });
+        notifications.show({
+          title: 'สร้างใบเสร็จไม่สำเร็จ',
+          message: error ?? '',
+          color: 'red',
+        });
       }
     } finally {
       setCreatingReceipt(false);
